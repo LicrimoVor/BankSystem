@@ -72,7 +72,7 @@ mod test {
         let balance = storage.get_balance(&"a".into()).unwrap();
         assert_eq!(
             Analitic::find_most_active(&storage),
-            Some(("a".into(), &balance))
+            Some(("a".into(), balance))
         );
     }
 
@@ -88,7 +88,7 @@ mod test {
         let balance = storage.get_balance(&"b".into()).unwrap();
         assert_eq!(
             Analitic::find_most_rich(&storage),
-            Some(("b".into(), &balance))
+            Some(("b".into(), balance))
         );
     }
 }

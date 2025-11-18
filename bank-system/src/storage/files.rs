@@ -106,8 +106,8 @@ mod tests {
         a_balance += 300;
         a_balance -= 100;
 
-        assert_eq!(storage.get_balance(&"John".to_string()), Some(j_balance));
-        assert_eq!(storage.get_balance(&"Alice".to_string()), Some(a_balance));
+        assert_eq!(storage.get_balance(&"John".to_string()), Some(&j_balance));
+        assert_eq!(storage.get_balance(&"Alice".to_string()), Some(&a_balance));
     }
 
     #[test]

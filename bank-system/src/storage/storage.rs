@@ -24,8 +24,8 @@ impl Storage {
         self.accounts.remove(name)
     }
 
-    pub fn get_balance(&self, name: &Name) -> Option<Balance> {
-        self.accounts.get(name).cloned()
+    pub fn get_balance(&self, name: &Name) -> Option<&Balance> {
+        self.accounts.get(name)
     }
 
     pub fn get_all(&self) -> Vec<(Name, &Balance)> {
