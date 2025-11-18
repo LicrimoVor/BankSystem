@@ -1,11 +1,11 @@
-use bank_system::{Name, Storage};
+use bank_system::{BalanceManager, Name, Storage};
 use std::env;
 
 fn main() {
     // Загружаем текущее состояние банка из CSV-файла
     // Здесь демонстрация использования BufRead в методе load_data()
     // Файл читается построчно, и каждая строка преобразуется в (Name, Balance)
-    let mut storage = Storage::load_data("balance.csv");
+    let mut storage = Storage::load_data("balance.csv").unwrap_or(Storage::new());
 
     // Получаем аргументы командной строки
     let args: Vec<String> = env::args().collect();

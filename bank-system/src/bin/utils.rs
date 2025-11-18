@@ -1,8 +1,8 @@
-use bank_system::{Name, Storage};
+use bank_system::{BalanceManager, Name, Storage};
 use std::io::{self, BufRead, Write};
 
 fn main() {
-    let mut storage = Storage::load_data("balance.csv");
+    let mut storage = Storage::load_data("balance.csv").unwrap_or(Storage::new());
 
     println!("=== Bank CLI Utils ===");
     println!("Команды:");

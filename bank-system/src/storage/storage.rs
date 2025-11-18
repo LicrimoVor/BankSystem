@@ -77,7 +77,10 @@ mod tests {
         storage.add_user("Bob".to_string());
         storage.deposit(&"Bob".to_string(), 100.into()).unwrap();
 
-        assert_eq!(storage.remove_user(&"Bob".to_string()), Some(100.into())); // удаляем и получаем баланс
+        let mut balance = Balance::new(0);
+        balance += 100;
+
+        assert_eq!(storage.remove_user(&"Bob".to_string()), Some(balance)); // удаляем и получаем баланс
         assert_eq!(storage.remove_user(&"Bob".to_string()), None); // второй раз — не найден
     }
 

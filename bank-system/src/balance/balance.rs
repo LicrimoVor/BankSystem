@@ -6,7 +6,13 @@ use std::fmt::Display;
 
 impl Display for Balance {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Balance:{}", self.value)
+        let history = self
+            .history
+            .iter()
+            .map(|op| format!("{:?}", op))
+            .collect::<Vec<String>>()
+            .join(",");
+        write!(f, "{},[{}]", self.value, history)
     }
 }
 
@@ -43,9 +49,6 @@ impl Balance {
                 self.value = 0;
                 Ok(())
             }
-            _ => Err(BalanceOpError::InvalidOperation(
-                "Неверная операция".to_string(),
-            )),
         };
 
         if result.is_ok() {
@@ -69,5 +72,28 @@ impl Balance {
 
     pub fn get_history(&self) -> &Vec<BalanceOp> {
         &self.history
+    }
+}
+
+impl TryFrom<String> for Balance {
+    type Error = BalanceOpError;
+    fn try_from(text: String) -> Result<Self, Self::Error> {
+        if text.is_empty() {
+            return Err(BalanceOpError::ParseError("Пустая строка".to_string()));
+        }
+        let Some((value, history)) = text.trim().split_once(',') else {
+            return Err(BalanceOpError::ParseError("Баланс некорректен".to_string()));
+        };
+
+        let value = value
+            .parse::<i64>()
+            .map_err(|_| BalanceOpError::ParseError("Баланс некорректен".to_string()))?;
+
+        let history_len = history.len();
+        let history = history[1..history_len - 1] // убираем скобочки []
+            .split(',')
+            .map(|op| BalanceOp::try_from(op.to_string()))
+            .collect::<Result<Vec<BalanceOp>, BalanceOpError>>()?;
+        Ok(Balance { value, history })
     }
 }
