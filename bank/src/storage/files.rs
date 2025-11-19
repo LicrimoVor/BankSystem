@@ -2,7 +2,7 @@ use super::Storage;
 use crate::balance::{Balance, BalanceOpError};
 use std::{
     fs::{self, File},
-    io::{self, BufRead, BufWriter},
+    io::{self, BufRead},
     path::Path,
 };
 
@@ -58,22 +58,11 @@ impl Storage {
     }
 
     pub fn save(&self, file: &str) {
-        //// первый способ сохранения
         let mut data = String::new();
-
         for (name, balance) in self.get_all() {
             data.push_str(&format!("{};{}\n", name, balance));
         }
         fs::write(file, data).expect("Не удалось записать файл");
-
-        //// второй способ сохранения
-        // let f = File::create("data.csv").unwrap();
-        // let mut writer = BufWriter::new(f);
-
-        // for (name, balance) in self.get_all() {
-        //     writeln!(writer, "{};{}", name, balance);
-        // }
-        // writer.flush().unwrap(); // всё записано в файл одной операцией
     }
 }
 

@@ -1,4 +1,4 @@
-use macros::{ToSql, say_hello};
+use macros::{FromSql, ToSql, say_hello};
 
 macro_rules! say {
     ($message:expr) => {
@@ -6,7 +6,7 @@ macro_rules! say {
     };
 }
 
-#[derive(ToSql)]
+#[derive(ToSql, Debug, FromSql)]
 struct User {
     id: i32,
     name: String,
@@ -25,4 +25,9 @@ fn main() {
         age: 30,
     };
     println!("{}", user.to_sql("users"));
+    let user2 = User::from_sql(
+        r"INSERT INTO users (id, name,age, status) VALUES('1','Bob','35', 'Offline');",
+    );
+
+    print!("{:?}", user2);
 }
