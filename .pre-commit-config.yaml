@@ -1,0 +1,6 @@
+- repo: https://github.com/FeryET/pre-commit-rust
+  rev: v1.2.1
+  hooks:
+    - id: cargo fmt
+    - id: cargo check
+    - id: cargo test --all-features

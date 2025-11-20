@@ -1,0 +1,15 @@
+name: "Bank system actions"
+on:
+    push:
+        branches:
+            - main
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Клонирование репозитория
+              uses: actions/checkout@v2
+            - name: Установка Rust
+              uses: actions-rust-lang/setup-rust-toolchain@v1
+            - name: Проверка всех тестов
+              run: cargo test --all-features
