@@ -20,7 +20,7 @@ pub enum TxError {
     InvalidAccount,
 }
 
-/// Транзакция - операция с балансом, которые хранятся в БД:
+/// Транзакция - трейт для всех транзакций, которые можно применить к балансу
 /// - ```fn apply(&self, storage: &mut Storage)``` - применить транзакцию
 pub trait Transaction {
     fn apply(&self, storage: &mut Storage) -> Result<(), TxError>;

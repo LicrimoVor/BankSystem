@@ -1,6 +1,7 @@
 use bank::{BalanceManager, Name, Storage};
 use std::env;
 
+/// Старая версия CLI (оставим тут)
 fn main() {
     // Загружаем текущее состояние банка из CSV-файла
     // Здесь демонстрация использования BufRead в методе load_data()

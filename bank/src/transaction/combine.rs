@@ -61,11 +61,11 @@ mod tests {
 
         let t1 = Deposit::new("a".into(), 10);
         let t2 = Withdraw::new("a".into(), 5);
-        let t: TxCombinator<Deposit, Withdraw> = t1 + t2;
+        let t: TxCombinator<Deposit, Withdraw> = t1.clone() + t2.clone();
         assert_eq!(t.apply(&mut storage), Ok(()));
         assert_eq!(
             storage.get_balance(&"a".into()),
-            Some(&Balance::new(5, vec![t1, t2]))
+            Some(&Balance::new(5, vec![t1.into(), t2.into()]))
         );
     }
 

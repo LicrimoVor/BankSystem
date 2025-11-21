@@ -29,5 +29,4 @@ pub trait BalanceManager {
     fn deposit(&mut self, name: &Name, amount: i64) -> Result<(), BalanceManagerError>;
     fn withdraw(&mut self, name: &Name, amount: i64) -> Result<(), BalanceManagerError>;
     fn transfer(&mut self, from: &Name, to: &Name, amount: i64) -> Result<(), BalanceManagerError>;
-    fn close(&mut self, name: &Name) -> Result<(), BalanceManagerError>;
 }

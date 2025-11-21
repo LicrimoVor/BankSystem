@@ -13,9 +13,9 @@ pub enum BalanceOpError {
 
 #[derive(Clone, PartialEq)]
 pub enum BalanceOp {
-    Deposit(i64),
-    Withdraw(i64),
-    Transfer(String, i64),
+    Deposit(u64),
+    Withdraw(u64),
+    Transfer(String, u64),
     Close,
 }
 
@@ -90,17 +90,5 @@ impl TryFrom<String> for BalanceOp {
 impl From<i64> for Balance {
     fn from(value: i64) -> Self {
         Balance::new(value, vec![])
-    }
-}
-
-impl AddAssign<i64> for Balance {
-    fn add_assign(&mut self, rhs: i64) {
-        let _ = self.apply_op(BalanceOp::Deposit(rhs));
-    }
-}
-
-impl SubAssign<i64> for Balance {
-    fn sub_assign(&mut self, rhs: i64) {
-        let _ = self.apply_op(BalanceOp::Withdraw(rhs));
     }
 }
