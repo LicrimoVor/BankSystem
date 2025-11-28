@@ -1,11 +1,13 @@
 use super::{Status, balance::BalanceOp};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+/// Операция баланса
 #[derive(Debug, Clone)]
 pub struct Operation {
     id: u64,
-    pub tx_type: BalanceOp,
     timestamp: u64,
+
+    pub tx_type: BalanceOp,
     pub status: Status,
     pub description: String,
 }
@@ -26,18 +28,27 @@ impl Operation {
         }
     }
 
+    /// Создает операцию депозита
     pub fn deposit(id: u64, amount: u64) -> Self {
         Self::new(id, BalanceOp::Deposit(amount), None)
     }
 
+    /// Создает операцию снятия
     pub fn withdraw(id: u64, amount: u64) -> Self {
         Self::new(id, BalanceOp::Withdraw(amount), None)
     }
 
-    pub fn transfer(id: u64, name: String, amount: i64) -> Self {
-        Self::new(id, BalanceOp::Transfer(name, amount), None)
+    /// Создает операцию перевода
+    pub fn transfer(id: u64, name: String, amount: u64, is_to: bool) -> Self {
+        Self::new(id, BalanceOp::Transfer(name, amount, is_to), None)
     }
 
+    /// Создает операцию закрытия
+    pub fn close(id: u64) -> Self {
+        Self::new(id, BalanceOp::Close, None)
+    }
+
+    /// Устанавливает статус операции
     pub fn set_status(&mut self, status: Status) {
         self.status = status;
     }

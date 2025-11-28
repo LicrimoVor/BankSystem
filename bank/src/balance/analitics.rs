@@ -1,9 +1,11 @@
 use super::{Balance, BalanceOp};
 use crate::Storage;
 
+/// Аналитика баланса
 pub struct Analitic;
 
 impl Analitic {
+    /// Наиболее активный пользователь
     pub fn find_most_active(storage: &Storage) -> Option<(String, &Balance)> {
         let accounts = storage.get_all();
         if accounts.is_empty() {
@@ -31,6 +33,7 @@ impl Analitic {
         Some(result)
     }
 
+    /// Наиболее богатый
     pub fn find_most_rich(storage: &Storage) -> Option<(String, &Balance)> {
         let accounts = storage.get_all();
         if accounts.is_empty() {

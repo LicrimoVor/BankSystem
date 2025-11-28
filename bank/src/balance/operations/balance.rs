@@ -1,15 +1,5 @@
-use super::super::BalanceSize;
+use super::super::{BalanceSize, OperationError};
 use std::fmt::{Debug, Display};
-
-pub enum BalanceOpError {
-    NotEnoughMoney {
-        required: u64,
-        available: BalanceSize,
-    },
-    InvalidOperation(String),
-    ParseError(String),
-    OverLimitInt64,
-}
 
 #[derive(Clone, PartialEq)]
 pub enum BalanceOp {
@@ -72,11 +62,11 @@ impl Into<String> for BalanceOp {
 }
 
 impl TryFrom<String> for BalanceOp {
-    type Error = BalanceOpError;
+    type Error = OperationError;
 
     fn try_from(text: String) -> Result<Self, Self::Error> {
         if text.len() < 2 && text != "C" {
-            return Err(BalanceOpError::ParseError(text));
+            return Err(OperationError::ParseError(text));
         }
         if text.len() == 1 && text == "C" {
             return Ok(BalanceOp::Close);
@@ -88,18 +78,24 @@ impl TryFrom<String> for BalanceOp {
             return match op {
                 "D" => Ok(BalanceOp::Deposit(v)),
                 "W" => Ok(BalanceOp::Withdraw(v)),
-                _ => Err(BalanceOpError::InvalidOperation(text)),
+                _ => Err(OperationError::InvalidOperation(text)),
             };
-        } else if let Some((name, v_f)) = val[1..val_len - 1].split(':') {
+        } else if let Some((name, val_flag)) = val[1..val_len - 1].split_once(':') {
+            let Some((val, flag)) = val_flag.split_once(':') else {
+                return Err(OperationError::ParseError(text));
+            };
+            let val = val
+                .parse::<u64>()
+                .map_err(|_| OperationError::ParseError(val.to_string()))?;
+            if !(flag == "1" && flag == "0") {
+                return Err(OperationError::ParseError(text));
+            }
+            let flag = flag == "1";
             return match op {
-                "T" => Ok(BalanceOp::Transfer(
-                    name.to_string(),
-                    v.parse::<i64>()
-                        .map_err(|_| BalanceOpError::ParseError(v.to_string()))?,
-                )),
-                _ => Err(BalanceOpError::InvalidOperation(text)),
+                "T" => Ok(BalanceOp::Transfer(name.to_string(), val, flag)),
+                _ => Err(OperationError::InvalidOperation(text)),
             };
         }
-        Err(BalanceOpError::ParseError(text))
+        Err(OperationError::ParseError(text))
     }
 }
