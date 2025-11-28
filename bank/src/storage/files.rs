@@ -1,5 +1,5 @@
 use super::Storage;
-use crate::balance::{Balance, BalanceOpError};
+use crate::balance::{Balance, operations::OperationType};
 use std::{
     fs::{self, File},
     io::{self, BufRead},

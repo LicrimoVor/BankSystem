@@ -1,5 +1,5 @@
-use super::{Balance, BalanceOp};
-use crate::Storage;
+use super::{Balance, operations::OperationType};
+use crate::storage::Storage;
 
 /// Аналитика баланса
 pub struct Analitic;
@@ -14,12 +14,13 @@ impl Analitic {
         let result = accounts
             .into_iter()
             .map(|(n, b)| {
-                let a: i64 = b
+                let a: u64 = b
                     .get_history()
                     .iter()
-                    .map(|op| match op {
-                        BalanceOp::Deposit(v) => *v,
-                        BalanceOp::Withdraw(v) => *v,
+                    .map(|op| match op.tx_type {
+                        OperationType::Deposit(v) => v,
+                        OperationType::Withdraw(v) => v,
+                        OperationType::Transfer(_, v, _) => v,
                         _ => 0,
                     })
                     .sum();

@@ -1,4 +1,7 @@
+use super::super::BalanceSize;
+
 /// Ошибки операции
+#[derive(Debug, Clone, PartialEq)]
 pub enum OperationError {
     /// Недостаточно средств
     NotEnoughMoney {
@@ -9,9 +12,12 @@ pub enum OperationError {
     /// Неверная операция
     InvalidOperation(String),
 
+    /// Неверный статус
+    InvalidStatus,
+
     /// Ошибка парсинга
     ParseError(String),
 
     /// Перевышен лимит
-    OverLimitInt64,
+    OverLimitSize,
 }

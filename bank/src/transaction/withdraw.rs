@@ -1,19 +1,19 @@
 use super::{Transaction, TxError};
 use crate::balance::{
     manager::{BalanceManager, BalanceManagerError},
-    operations::BalanceOp,
+    operations::{OperationAmount, OperationType},
 };
 use crate::storage::Storage;
 
 #[derive(Debug, Clone)]
 pub struct Withdraw {
     account: String,
-    amount: i64,
+    amount: OperationAmount,
 }
 
 /// Списание с счета
 impl Withdraw {
-    pub fn new(account: String, amount: i64) -> Self {
+    pub fn new(account: String, amount: OperationAmount) -> Self {
         Self { account, amount }
     }
 }
@@ -23,15 +23,15 @@ impl Transaction for Withdraw {
         storage
             .withdraw(&self.account, self.amount)
             .map_err(|e| match e {
-                BalanceManagerError::NotEnoughMoney { .. } => TxError::InsufficientFunds,
+                BalanceManagerError::OperationError(err) => TxError::OperationError(err),
                 BalanceManagerError::UserNotFound(_) => TxError::InvalidAccount,
             })?;
         Ok(())
     }
 }
 
-impl Into<BalanceOp> for Withdraw {
-    fn into(self) -> BalanceOp {
-        BalanceOp::Withdraw(self.amount)
+impl Into<OperationType> for Withdraw {
+    fn into(self) -> OperationType {
+        OperationType::Withdraw(self.amount)
     }
 }

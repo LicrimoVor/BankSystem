@@ -1,44 +1,39 @@
 use super::{Transaction, TxError};
-use crate::balance::{manager::BalanceManager, operations::BalanceOp};
+use crate::balance::{
+    manager::{BalanceManager, BalanceManagerError},
+    operations::{OperationAmount, OperationType},
+};
 use crate::storage::Storage;
 
 #[derive(Debug, Clone)]
 pub struct Transfer {
     from: String,
     to: String,
-    amount: i64,
+    amount: OperationAmount,
 }
 
 /// Перевод средств между счетами
 impl Transfer {
-    pub fn new(from: String, to: String, amount: i64) -> Self {
+    pub fn new(from: String, to: String, amount: OperationAmount) -> Self {
         Self { from, to, amount }
     }
 }
 
 impl Transaction for Transfer {
     fn apply(&self, storage: &mut Storage) -> Result<(), TxError> {
-        let Some(from_balance) = storage.get_balance(&self.from) else {
-            return Err(TxError::InvalidAccount);
-        };
-
-        if from_balance.get_value() < self.amount {
-            return Err(TxError::InsufficientFunds);
-        };
-
         storage
-            .withdraw(&self.from, self.amount)
-            .map_err(|_| TxError::InvalidAccount)?;
-        storage
-            .deposit(&self.to, self.amount)
-            .map_err(|_| TxError::InvalidAccount)?;
+            .transfer(&self.from, &self.to, self.amount)
+            .map_err(|e| match e {
+                BalanceManagerError::OperationError { .. } => TxError::InsufficientFunds,
+                BalanceManagerError::UserNotFound(_) => TxError::InvalidAccount,
+            })?;
 
         Ok(())
     }
 }
 
-impl Into<BalanceOp> for Transfer {
-    fn into(self) -> BalanceOp {
-        BalanceOp::Withdraw(self.amount)
+impl Into<OperationType> for Transfer {
+    fn into(self) -> OperationType {
+        OperationType::Withdraw(self.amount)
     }
 }

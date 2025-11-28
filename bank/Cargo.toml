@@ -9,4 +9,5 @@ parsers = { path = "../parsers" }
 regex = { workspace = true }
 
 [dev-dependencies]
+assert_matches = { workspace = true }
 tempfile = "3.23.0"

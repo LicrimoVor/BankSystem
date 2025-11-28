@@ -41,7 +41,7 @@ impl<T1: Transaction, T2: Transaction, Rhs: Transaction> Add<Rhs> for TxCombinat
 mod tests {
     use super::super::{Deposit, Withdraw};
     use super::*;
-    use crate::balance::Balance;
+    use assert_matches::assert_matches;
 
     #[test]
     fn test_tx_combinator_invalid() {
@@ -62,10 +62,9 @@ mod tests {
         let t2 = Withdraw::new("a".into(), 5);
         let t: TxCombinator<Deposit, Withdraw> = t1.clone() + t2.clone();
         assert_eq!(t.apply(&mut storage), Ok(()));
-        assert_eq!(
-            storage.get_balance(&"a".into()),
-            Some(&Balance::new(5, vec![t1.into(), t2.into()]))
-        );
+        let res = storage.get_balance(&"a".into());
+        assert_matches!(res, Some(_));
+        assert_eq!(res.unwrap().get_value(), 5);
     }
 
     #[test]

@@ -1,7 +1,8 @@
 use super::OperationError;
+use std::fmt::Display;
 
 /// Статус операции
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Status {
     FAILURE,
     PENDING,
@@ -19,7 +20,7 @@ impl Display for Status {
     }
 }
 
-impl TryFromom<String> for Status {
+impl TryFrom<String> for Status {
     type Error = OperationError;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {

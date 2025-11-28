@@ -4,3 +4,4 @@ members = ["macros", "parsers", "bank", "app"]
 
 [workspace.dependencies]
 regex = "1"
+assert_matches = "1.5"

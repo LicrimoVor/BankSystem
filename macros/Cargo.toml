@@ -11,3 +11,6 @@ proc-macro2 = "1"
 quote = "1"
 syn = { version = "2", features = ["full"] }
 regex = { workspace = true }
+
+[dev-dependencies]
+assert_matches = { workspace = true }

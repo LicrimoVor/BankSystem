@@ -1,16 +1,19 @@
 use super::{Transaction, TxError};
-use crate::balance::{manager::BalanceManager, operations::BalanceOp};
+use crate::balance::{
+    manager::BalanceManager,
+    operations::{OperationAmount, OperationType},
+};
 use crate::storage::Storage;
 
 /// Пополнение счета
 #[derive(Debug, Clone)]
 pub struct Deposit {
     account: String,
-    amount: i64,
+    amount: OperationAmount,
 }
 
 impl Deposit {
-    pub fn new(account: String, amount: i64) -> Self {
+    pub fn new(account: String, amount: OperationAmount) -> Self {
         Self { account, amount }
     }
 }
@@ -24,8 +27,8 @@ impl Transaction for Deposit {
     }
 }
 
-impl Into<BalanceOp> for Deposit {
-    fn into(self) -> BalanceOp {
-        BalanceOp::Deposit(self.amount)
+impl Into<OperationType> for Deposit {
+    fn into(self) -> OperationType {
+        OperationType::Deposit(self.amount)
     }
 }

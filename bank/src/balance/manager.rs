@@ -1,4 +1,4 @@
-use super::operations::{BalanceSize, OperationError};
+use super::operations::{OperationAmount, OperationError};
 use crate::Name;
 use std::fmt::Display;
 
@@ -13,18 +13,20 @@ impl Display for BalanceManagerError {
         match self {
             BalanceManagerError::UserNotFound(name) => write!(f, "Пользователь {} не найден", name),
             BalanceManagerError::OperationError(oper) => {
-                write!(
-                    f,
-                    "Недостаточно средств. Необходимо: {}, Доступно: {}",
-                    required, available
-                )
+                write!(f, "Ошибка операции. {:?}", oper)
             }
         }
     }
 }
 
 pub trait BalanceManager {
-    fn deposit(&mut self, name: &Name, amount: i64) -> Result<(), BalanceManagerError>;
-    fn withdraw(&mut self, name: &Name, amount: i64) -> Result<(), BalanceManagerError>;
-    fn transfer(&mut self, from: &Name, to: &Name, amount: i64) -> Result<(), BalanceManagerError>;
+    fn deposit(&mut self, name: &Name, amount: OperationAmount) -> Result<(), BalanceManagerError>;
+    fn withdraw(&mut self, name: &Name, amount: OperationAmount)
+    -> Result<(), BalanceManagerError>;
+    fn transfer(
+        &mut self,
+        from: &Name,
+        to: &Name,
+        amount: OperationAmount,
+    ) -> Result<(), BalanceManagerError>;
 }
