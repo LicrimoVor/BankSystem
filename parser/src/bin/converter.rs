@@ -1,14 +1,81 @@
+use clap::Parser;
 use parser::{FileType, from::FromFile, to::ToFile};
+use std::{
+    fs::File,
+    io::{BufReader, BufWriter},
+};
 
-fn main() {}
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Cli {
+    /// Файл входа
+    #[arg(short, long)]
+    input: String,
+
+    /// Тип входного файла
+    #[arg(long)]
+    input_type: Option<String>,
+
+    /// Файл для конвертации
+    #[arg(short, long)]
+    output: String,
+
+    /// Тип выходного файла
+    #[arg(long)]
+    output_type: Option<String>,
+}
+
+fn main() {
+    let Cli {
+        input,
+        input_type,
+        output,
+        output_type,
+    } = Cli::parse();
+
+    let input_type_default = input.split('.').last().unwrap().to_string();
+    let output_type_default = output.split('.').last().unwrap().to_string();
+    let input_type = input_type.unwrap_or(input_type_default.clone());
+    let output_type = output_type.unwrap_or(output_type_default.clone());
+
+    if input_type != input_type_default || output_type != output_type_default {
+        println!("Типы файлов не соответствуют названию входного и выходного файлов");
+        println!("Вы точно уверены? Y/N");
+        let mut a = String::new();
+        std::io::stdin().read_line(&mut a).unwrap();
+        if a == "N" || a == "n" {
+            return;
+        }
+    }
+
+    let input_type = match input_type.as_str() {
+        "txt" => FileType::TXT,
+        "csv" => FileType::CSV,
+        "bin" => FileType::BIN,
+        _ => panic!("Unknown input type"),
+    };
+
+    let output_type = match output_type.as_str() {
+        "txt" => FileType::TXT,
+        "csv" => FileType::CSV,
+        "bin" => FileType::BIN,
+        _ => panic!("Unknown output type"),
+    };
+
+    let mut buf_r: BufReader<File> = BufReader::new(File::open(input).unwrap());
+    let operations = FromFile::operations(&mut buf_r, input_type).unwrap();
+
+    let mut buf_w = BufWriter::new(File::create(output).unwrap());
+    ToFile::operations(&mut buf_w, &operations, output_type).unwrap();
+
+    println!("Выполено успешно");
+}
 
 #[cfg(test)]
 mod test {
     use super::*;
-    use std::{
-        fs::File,
-        io::{BufReader, BufWriter, Read},
-    };
+    use std::io::Read;
+
     const PATH_TXT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/data/test.txt");
     const PATH_CSV: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/data/test.csv");
     const PATH_BIN: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/data/test.bin");

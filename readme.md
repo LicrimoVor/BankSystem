@@ -12,21 +12,23 @@
 
 1. Клонируйте репозиторий:
     ```bash 
-        git clone https://github.com/LicrimoVor/BankSystem.git
-        cd BankSystem 
+    git clone https://github.com/LicrimoVor/BankSystem.git
+    cd BankSystem 
     ```
 2. Установите зависимости и соберите проект:
     ```bash
-        cargo build --release
+    cargo build --release
     ```
     или
     ```bash
-        cargo run 
+    cargo run 
     ```
 3. Запустите приложение:
-    ```bash
-        cargo run -p bank --bin utils
-    ```
+    ```cargo run -p bank --bin utils``` - утилиты
+    ```cargo run -p bank --bin demo``` - демо
+    ```cargo run -p bank --bin macro``` - тест макросов
+    ```cargo run -p parser --bin comparer``` - сравнивает файлы на соответствие транзаций
+    ```cargo run -p parser --bin converter``` - конвертирует файл в другой формат
 
 ## Тесты
  
@@ -36,5 +38,6 @@
 ```
 
 ## Архитектура
- * `Bank` — основной тип, управляющий аккаунтами и транзакциями
- * `Account` — структура, описывающая отдельный банковский счет
+ * `Balance` — ...
+ * `Operation` — ...
+ * `Storage` — ...
