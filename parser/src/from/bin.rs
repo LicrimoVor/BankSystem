@@ -11,7 +11,7 @@ pub fn parse_from_bin<R: std::io::Read>(r: &mut R) -> Result<Vec<OperationName>,
         let mut i = 0;
         let bytes_len = bytes.len();
         bytes
-            .split(|_| {
+            .split_inclusive(|_| {
                 i += 1;
                 if bytes_len < i + 4 {
                     false
@@ -98,7 +98,7 @@ pub fn parse_from_bin<R: std::io::Read>(r: &mut R) -> Result<Vec<OperationName>,
                 u32::from_be_bytes(arr)
             };
             let desc = {
-                let end = i + desc_len as usize - 1;
+                let end = i + desc_len as usize;
                 let arr: Vec<u8> = row[i..end].to_vec();
                 String::from_utf8(arr).expect("REASON")
             };

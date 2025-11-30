@@ -47,11 +47,11 @@ pub fn parse_to_bin<W: std::io::Write>(
         body.push(status);
 
         let mut description = op.description.as_bytes().to_vec();
-        let desc_len = (description.len() + 1) as u32;
+        let desc_len = description.len() as u32;
         body.append(&mut desc_len.to_be_bytes().to_vec());
         body.append(&mut description);
 
-        let body_len = (body.len() + 1) as u32;
+        let body_len = body.len() as u32;
         w.write(&body_len.to_be_bytes())
             .or_else(|e| Err(ParseFileError::WriteError(e)))?;
         w.write(&body)
@@ -73,7 +73,7 @@ mod tests {
             89, 80, 66, 78, 0, 0, 0, 63, 0, 3, 141, 126, 164, 198, 128, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 127, 255, 255, 255, 255, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 100, 0, 0, 1, 124, 56,
             148, 250, 96, 1, 0, 0, 0, 17, 34, 82, 101, 99, 111, 114, 100, 32, 110, 117, 109, 98,
-            101, 114, 32, 49,
+            101, 114, 32, 49, 34,
         ];
         let operations = vec![OperationName(
             Operation::load(
@@ -81,7 +81,7 @@ mod tests {
                 1633036860000,
                 OperationType::Deposit(100),
                 OperationStatus::FAILURE,
-                Some("\"Record number 1".to_string()),
+                Some("\"Record number 1\"".to_string()),
             ),
             "9223372036854775807".to_string(),
         )];

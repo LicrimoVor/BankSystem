@@ -1,6 +1,5 @@
 mod bin;
 mod csv;
-mod errors;
 mod txt;
 
 use crate::{FileType, OperationName, errors::ParseFileError};
@@ -14,7 +13,7 @@ impl ToFile {
     ) -> Result<(), ParseFileError> {
         match file_type {
             FileType::BIN => bin::parse_to_bin(w, &operations),
-            FileType::CSV => csv::parse_to_csv(w, operations),
+            FileType::CSV => csv::parse_to_csv(w, &operations),
             FileType::TXT => txt::parse_to_txt(w, operations),
         }
     }
