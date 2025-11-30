@@ -103,23 +103,22 @@ pub fn parse_from_bin<R: std::io::Read>(r: &mut R) -> Result<Vec<OperationName>,
                 String::from_utf8(arr).expect("REASON")
             };
 
-            let tx_type = match tx_type {
-                OperationType::Deposit(_) => OperationType::Deposit(amount.abs() as u64),
-                OperationType::Withdraw(_) => OperationType::Withdraw(amount.abs() as u64),
-                OperationType::Transfer(_, _, _) => {
-                    OperationType::Transfer(from_user.to_string(), amount.abs() as u64, true)
+            let (tx_type, name) = match tx_type {
+                OperationType::Deposit(_) => (OperationType::Deposit(amount.abs() as u64), to_user),
+                OperationType::Withdraw(_) => {
+                    (OperationType::Withdraw(amount.abs() as u64), from_user)
                 }
-                OperationType::Close => OperationType::Close,
+                OperationType::Transfer(_, _, _) => (
+                    OperationType::Transfer(from_user.to_string(), amount.abs() as u64, true),
+                    to_user,
+                ),
+                OperationType::Close => (OperationType::Close, to_user),
             };
             let operation = Operation::load(id, timestamp, tx_type, status, Some(desc));
-            let name = if from_user == 0 { to_user } else { from_user };
-
             Ok(OperationName(operation, name.to_string()))
         })
         .collect();
 
-    println!("{:?}", data.first());
-    println!("{:?}", operations.first());
     operations.into_iter().collect()
 }
 

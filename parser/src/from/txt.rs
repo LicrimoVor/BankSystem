@@ -57,10 +57,13 @@ pub fn parse_from_txt<R: std::io::Read>(r: &mut R) -> Result<Vec<OperationName>,
                 .parse::<u64>()
                 .or(Err(ParseFileError::ParseError("Неверный формат tx_id")))?;
 
-            let tx_type = match tx_type.as_str() {
-                "DEPOSIT" => Ok(OperationType::Deposit(amount)),
-                "WITHDRAWAL" => Ok(OperationType::Withdraw(amount)),
-                "TRANSFER" => Ok(OperationType::Transfer(from_user_id.clone(), amount, true)),
+            let (tx_type, name) = match tx_type.as_str() {
+                "DEPOSIT" => Ok((OperationType::Deposit(amount), to_user_id)),
+                "WITHDRAWAL" => Ok((OperationType::Withdraw(amount), from_user_id)),
+                "TRANSFER" => Ok((
+                    OperationType::Transfer(from_user_id.clone(), amount, true),
+                    to_user_id,
+                )),
                 _ => Err(ParseFileError::ParseError("Неверный формат tx_type")),
             }?;
 
@@ -70,12 +73,6 @@ pub fn parse_from_txt<R: std::io::Read>(r: &mut R) -> Result<Vec<OperationName>,
                 "FAILURE" => Ok(OperationStatus::FAILURE),
                 _ => Err(ParseFileError::ParseError("Неверный формат status")),
             }?;
-
-            let name = if from_user_id == "0" {
-                to_user_id
-            } else {
-                from_user_id
-            };
             let operation = Operation::load(tx_id, timestamp, tx_type, status, Some(description));
 
             Ok(OperationName(operation, name.to_string()))

@@ -36,14 +36,13 @@ pub fn parse_from_csv<R: std::io::Read>(r: &mut R) -> Result<Vec<OperationName>,
                 DESCRIPTION,
             } = row;
 
-            let tx_type = match TX_TYPE.as_str() {
-                "DEPOSIT" => Ok(OperationType::Deposit(AMOUNT)),
-                "TRANSFER" => Ok(OperationType::Transfer(
-                    FROM_USER_ID.to_string(),
-                    AMOUNT,
-                    true,
+            let (tx_type, name) = match TX_TYPE.as_str() {
+                "DEPOSIT" => Ok((OperationType::Deposit(AMOUNT), TO_USER_ID)),
+                "TRANSFER" => Ok((
+                    OperationType::Transfer(FROM_USER_ID.to_string(), AMOUNT, true),
+                    TO_USER_ID,
                 )),
-                "WITHDRAWAL" => Ok(OperationType::Withdraw(AMOUNT)),
+                "WITHDRAWAL" => Ok((OperationType::Withdraw(AMOUNT), FROM_USER_ID)),
                 _ => Err(()),
             }
             .or(Err(ParseFileError::ParseError("Неверный тип операции")))?;
@@ -55,13 +54,13 @@ pub fn parse_from_csv<R: std::io::Read>(r: &mut R) -> Result<Vec<OperationName>,
                 _ => Err(()),
             }
             .or(Err(ParseFileError::ParseError("Неверный статус операции")))?;
-
-            let operation = Operation::load(TX_ID, TIMESTAMP, tx_type, status, Some(DESCRIPTION));
-            let name = if FROM_USER_ID == 0 {
-                TO_USER_ID
-            } else {
-                FROM_USER_ID
-            };
+            let operation = Operation::load(
+                TX_ID,
+                TIMESTAMP,
+                tx_type,
+                status,
+                Some(format!("\"{DESCRIPTION}\"")),
+            );
 
             Ok(OperationName(operation, name.to_string()))
         })
@@ -82,6 +81,7 @@ mod tests {
         let mut buf = BufReader::new(file);
         let res = parse_from_csv(&mut buf);
         assert!(res.is_ok());
-        assert_eq!(res.unwrap().len(), 1000);
+        let res = res.unwrap();
+        assert_eq!(res.len(), 1000);
     }
 }
