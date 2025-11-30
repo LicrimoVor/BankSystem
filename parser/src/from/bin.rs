@@ -2,6 +2,7 @@ use super::errors::ParseFromFileError;
 use crate::OperationName;
 use bank::balance::operations::{Operation, OperationStatus, OperationType};
 
+/// Преобразование bin-файла в список операций
 pub fn parse_from_bin<R: std::io::Read>(
     r: &mut R,
 ) -> Result<Vec<OperationName>, ParseFromFileError> {
@@ -26,28 +27,28 @@ pub fn parse_from_bin<R: std::io::Read>(
 
     let operations: Vec<Result<OperationName, ParseFromFileError>> = data
         .iter()
-        .map(|balance| {
+        .map(|row| {
             let mut i = 0;
             let _magic = {
                 let end = i + 4;
-                let arr: [u8; 4] = balance[i..end].try_into().expect("REASON");
+                let arr: [u8; 4] = row[i..end].try_into().expect("REASON");
                 i = end;
                 str::from_utf8(&arr).expect("REASON").to_string()
             };
             let _size = {
                 let end = i + 4;
-                let arr: [u8; 4] = balance[i..end].try_into().expect("REASON");
+                let arr: [u8; 4] = row[i..end].try_into().expect("REASON");
                 i = end;
                 u32::from_be_bytes(arr)
             };
             let id = {
                 let end = i + 8;
-                let arr: [u8; 8] = balance[i..end].try_into().expect("REASON");
+                let arr: [u8; 8] = row[i..end].try_into().expect("REASON");
                 i = end;
                 u64::from_be_bytes(arr)
             };
             let tx_type = {
-                let res = match balance[i] {
+                let res = match row[i] {
                     0 => Ok(OperationType::Deposit(0)),
                     1 => Ok(OperationType::Transfer("".to_string(), 0, false)),
                     2 => Ok(OperationType::Withdraw(0)),
@@ -57,36 +58,34 @@ pub fn parse_from_bin<R: std::io::Read>(
 
                 res
             }
-            .or(Err(ParseFromFileError::ParseError(
-                "Неверный тип операции".to_string(),
-            )))?;
+            .or(Err(ParseFromFileError::ParseError("Неверный тип операции")))?;
             let from_user = {
                 let end = i + 8;
-                let arr: [u8; 8] = balance[i..end].try_into().expect("REASON");
+                let arr: [u8; 8] = row[i..end].try_into().expect("REASON");
                 i = end;
                 u64::from_be_bytes(arr)
             };
             let to_user = {
                 let end = i + 8;
-                let arr: [u8; 8] = balance[i..end].try_into().expect("REASON");
+                let arr: [u8; 8] = row[i..end].try_into().expect("REASON");
                 i = end;
                 u64::from_be_bytes(arr)
             };
             let amount = {
                 let end = i + 8;
-                let arr: [u8; 8] = balance[i..end].try_into().expect("REASON");
+                let arr: [u8; 8] = row[i..end].try_into().expect("REASON");
                 i = end;
                 i64::from_be_bytes(arr)
             };
             let timestamp = {
                 let end = i + 8;
-                let arr: [u8; 8] = balance[i..end].try_into().expect("REASON");
+                let arr: [u8; 8] = row[i..end].try_into().expect("REASON");
                 i = end;
                 u64::from_be_bytes(arr)
             };
             let status = {
                 i += 1;
-                match balance[i] {
+                match row[i] {
                     0 => Ok(OperationStatus::SUCCESS),
                     1 => Ok(OperationStatus::FAILURE),
                     2 => Ok(OperationStatus::PENDING),
@@ -94,17 +93,17 @@ pub fn parse_from_bin<R: std::io::Read>(
                 }
             }
             .or(Err(ParseFromFileError::ParseError(
-                "Неверный статус операции".to_string(),
+                "Неверный статус операции",
             )))?;
             let desc_len = {
                 let end = i + 4;
-                let arr: [u8; 4] = balance[i..end].try_into().expect("REASON");
+                let arr: [u8; 4] = row[i..end].try_into().expect("REASON");
                 i = end;
                 u32::from_be_bytes(arr)
             };
             let desc = {
                 let end = i + desc_len as usize - 1;
-                let arr: Vec<u8> = balance[i..end].to_vec();
+                let arr: Vec<u8> = row[i..end].to_vec();
                 String::from_utf8(arr).expect("REASON")
             };
 
