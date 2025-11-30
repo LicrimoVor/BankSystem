@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["macros", "parsers", "bank", "app"]
+members = ["macros", "parser", "bank", "app"]
 
 [workspace.dependencies]
 regex = "1"

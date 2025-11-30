@@ -16,6 +16,29 @@ pub struct Operation {
 }
 
 impl Operation {
+    pub fn id(&self) -> u64 {
+        self.id
+    }
+    pub fn timestamp(&self) -> u64 {
+        self.timestamp
+    }
+
+    pub fn load(
+        id: u64,
+        timestamp: u64,
+        tx_type: OperationType,
+        status: OperationStatus,
+        description: Option<String>,
+    ) -> Self {
+        Self {
+            id,
+            tx_type,
+            timestamp,
+            status,
+            description: description.unwrap_or(format!("Record number #{}", id)),
+        }
+    }
+
     pub fn new(id: u64, tx_type: OperationType, description: Option<String>) -> Self {
         let timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)

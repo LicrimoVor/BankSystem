@@ -5,7 +5,6 @@ edition = "2024"
 
 [dependencies]
 macros = { path = "../macros" }
-parsers = { path = "../parsers" }
 regex = { workspace = true }
 
 [dev-dependencies]
