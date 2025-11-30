@@ -7,7 +7,11 @@ pub type OperationAmount = u64;
 pub enum OperationType {
     Deposit(OperationAmount),
     Withdraw(OperationAmount),
-    /// name, amount, is_to
+    /// name, amount, to/from
+    ///
+    /// to - false, текущий пользователь-отправитель
+    ///
+    /// from - true, текущий пользователь-получатель
     Transfer(String, OperationAmount, bool),
     Close,
 }

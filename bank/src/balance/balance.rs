@@ -1,7 +1,7 @@
 use super::{BalanceSize, errors::BalanceError, operations::Operation};
 use std::fmt::Display;
 
-/// Баланс
+/// # Баланс
 #[derive(Debug, Clone, PartialEq)]
 pub struct Balance {
     pub(super) value: BalanceSize,
@@ -71,14 +71,17 @@ impl TryFrom<String> for Balance {
 }
 
 impl Balance {
+    /// Создание баланса
     pub fn new(value: BalanceSize, history: Vec<Operation>) -> Self {
         Balance { value, history }
     }
 
+    /// Получение баланса
     pub fn get_value(&self) -> BalanceSize {
         self.value
     }
 
+    /// Получение истории
     pub fn get_history(&self) -> &Vec<Operation> {
         &self.history
     }

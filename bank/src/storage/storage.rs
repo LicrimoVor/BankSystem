@@ -3,12 +3,15 @@ use crate::{Name, balance::Balance};
 use std::collections::HashMap;
 
 impl Storage {
+    /// Создание нового хранилища
     pub fn new() -> Self {
         Storage {
             accounts: HashMap::new(),
             __id_balance_gen: 1,
         }
     }
+
+    /// Добавить пользователя
     pub fn add_user(&mut self, name: Name) -> Option<&Balance> {
         if self.accounts.contains_key(&name) {
             None
@@ -19,14 +22,17 @@ impl Storage {
         }
     }
 
+    /// Удалить пользователя
     pub fn remove_user(&mut self, name: &Name) -> Option<Balance> {
         self.accounts.remove(name)
     }
 
+    /// Получить баланс
     pub fn get_balance(&self, name: &Name) -> Option<&Balance> {
         self.accounts.get(name)
     }
 
+    /// Получить всех пользователей и их балансы
     pub fn get_all(&self) -> Vec<(Name, &Balance)> {
         self.accounts.iter().map(|(n, b)| (n.clone(), b)).collect()
     }

@@ -1,8 +1,10 @@
 mod bin;
 mod csv;
 mod txt;
-
 use crate::{FileType, OperationName, errors::ParseFileError};
+
+/// Парсит файл в зависимости от его типа
+/// (пока только операции)
 pub struct ToFile;
 
 impl ToFile {

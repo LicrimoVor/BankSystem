@@ -80,7 +80,7 @@ mod tests {
     #[test]
     fn test_load_data_existing_file() {
         let mut file = NamedTempFile::new().unwrap();
-        write!(file, 
+        write!(file,
 "Ivan;300,[1,1764444526,D100,success,Record number #1|3,1764444535,T(Julia:200:true),success,Record number #3]
 Julia;400,[2,1764444530,D600,success,Record number #2|3,1764444535,T(Ivan:200:false),success,Record number #3]").unwrap();
         let path = file.path().to_str().unwrap();

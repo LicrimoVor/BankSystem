@@ -2,6 +2,7 @@ use super::operations::{OperationAmount, OperationError};
 use crate::Name;
 use std::fmt::Display;
 
+/// Ошибка работы с балансом
 #[derive(Debug)]
 pub enum BalanceManagerError {
     UserNotFound(Name),
@@ -20,9 +21,12 @@ impl Display for BalanceManagerError {
 }
 
 pub trait BalanceManager {
+    /// Пополнение баланса
     fn deposit(&mut self, name: &Name, amount: OperationAmount) -> Result<(), BalanceManagerError>;
+    /// Списание баланса
     fn withdraw(&mut self, name: &Name, amount: OperationAmount)
     -> Result<(), BalanceManagerError>;
+    /// Перевод между пользователями
     fn transfer(
         &mut self,
         from: &Name,

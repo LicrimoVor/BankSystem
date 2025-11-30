@@ -40,6 +40,8 @@ pub fn parse_to_csv<W: std::io::Write>(
             OperationStatus::FAILURE => "FAILURE",
             OperationStatus::PENDING => "PENDING",
         };
+
+        // немного копи-паста
         row.push(op.id().to_string());
         row.push(tx_type.to_string());
         row.push(from_name.to_string());

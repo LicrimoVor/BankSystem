@@ -4,6 +4,8 @@ mod txt;
 
 use crate::{FileType, OperationName, errors::ParseFileError};
 
+/// Парсит фаил в зависимости от его типа
+/// (пока только операции)
 pub struct FromFile;
 
 impl FromFile {

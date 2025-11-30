@@ -1,7 +1,7 @@
 use super::{Balance, operations::OperationType};
 use crate::storage::Storage;
 
-/// Аналитика баланса
+/// # Аналитика баланса
 pub struct Analitic;
 
 impl Analitic {

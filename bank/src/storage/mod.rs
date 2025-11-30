@@ -7,6 +7,7 @@ use std::collections::HashMap;
 /// Структура хранилища
 #[derive(Debug)]
 pub struct Storage {
+    /// Поле для хранения пользовательских балансов
     accounts: HashMap<Name, Balance>,
 
     /// поле для генерации уникальных id для баланса

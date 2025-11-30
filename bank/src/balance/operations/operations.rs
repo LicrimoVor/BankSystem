@@ -23,6 +23,7 @@ impl Operation {
         self.timestamp
     }
 
+    /// Полная загрузка операции
     pub fn load(
         id: u64,
         timestamp: u64,
@@ -39,6 +40,7 @@ impl Operation {
         }
     }
 
+    /// Создание операции
     pub fn new(id: u64, tx_type: OperationType, description: Option<String>) -> Self {
         let timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
