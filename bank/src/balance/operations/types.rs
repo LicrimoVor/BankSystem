@@ -7,6 +7,7 @@ pub type OperationAmount = u64;
 pub enum OperationType {
     Deposit(OperationAmount),
     Withdraw(OperationAmount),
+    /// name, amount, is_to
     Transfer(String, OperationAmount, bool),
     Close,
 }

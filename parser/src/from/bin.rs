@@ -1,14 +1,11 @@
-use super::errors::ParseFromFileError;
-use crate::OperationName;
+use crate::{OperationName, errors::ParseFileError};
 use bank::balance::operations::{Operation, OperationStatus, OperationType};
 
 /// Преобразование bin-файла в список операций
-pub fn parse_from_bin<R: std::io::Read>(
-    r: &mut R,
-) -> Result<Vec<OperationName>, ParseFromFileError> {
+pub fn parse_from_bin<R: std::io::Read>(r: &mut R) -> Result<Vec<OperationName>, ParseFileError> {
     let mut bytes = Vec::new();
     r.read_to_end(&mut bytes)
-        .or_else(|e| Err(ParseFromFileError::IoError(e)))?;
+        .or_else(|e| Err(ParseFileError::IoError(e)))?;
 
     let data: Vec<&[u8]> = {
         let mut i = 0;
@@ -25,7 +22,7 @@ pub fn parse_from_bin<R: std::io::Read>(
             .collect()
     };
 
-    let operations: Vec<Result<OperationName, ParseFromFileError>> = data
+    let operations: Vec<Result<OperationName, ParseFileError>> = data
         .iter()
         .map(|row| {
             let mut i = 0;
@@ -58,7 +55,7 @@ pub fn parse_from_bin<R: std::io::Read>(
 
                 res
             }
-            .or(Err(ParseFromFileError::ParseError("Неверный тип операции")))?;
+            .or(Err(ParseFileError::ParseError("Неверный тип операции")))?;
             let from_user = {
                 let end = i + 8;
                 let arr: [u8; 8] = row[i..end].try_into().expect("REASON");
@@ -84,17 +81,16 @@ pub fn parse_from_bin<R: std::io::Read>(
                 u64::from_be_bytes(arr)
             };
             let status = {
-                i += 1;
-                match row[i] {
+                let res = match row[i] {
                     0 => Ok(OperationStatus::SUCCESS),
                     1 => Ok(OperationStatus::FAILURE),
                     2 => Ok(OperationStatus::PENDING),
                     _ => Err(()),
-                }
+                };
+                i += 1;
+                res
             }
-            .or(Err(ParseFromFileError::ParseError(
-                "Неверный статус операции",
-            )))?;
+            .or(Err(ParseFileError::ParseError("Неверный статус операции")))?;
             let desc_len = {
                 let end = i + 4;
                 let arr: [u8; 4] = row[i..end].try_into().expect("REASON");
@@ -122,6 +118,8 @@ pub fn parse_from_bin<R: std::io::Read>(
         })
         .collect();
 
+    println!("{:?}", data.first());
+    println!("{:?}", operations.first());
     operations.into_iter().collect()
 }
 

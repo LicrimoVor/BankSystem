@@ -1,3 +1,4 @@
+pub mod errors;
 pub mod from;
 pub mod to;
 use bank::{Name, balance::operations::Operation};
