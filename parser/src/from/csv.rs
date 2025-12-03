@@ -25,7 +25,7 @@ pub(super) fn parse_from_csv<R: std::io::Read>(
         .deserialize::<Record>()
         .map(|row| {
             let Ok(row) = row else {
-                return Err(ParseFileError::SerializeError("Неверный формат строки"));
+                return Err(ParseFileError::SerializeError("Не соответствует шаблону"));
             };
             let Record {
                 TX_ID,
@@ -45,26 +45,19 @@ pub(super) fn parse_from_csv<R: std::io::Read>(
                     TO_USER_ID,
                 )),
                 "WITHDRAWAL" => Ok((OperationType::Withdraw(AMOUNT), FROM_USER_ID)),
-                _ => Err(()),
-            }
-            .or(Err(ParseFileError::SerializeError("Неверный тип операции")))?;
-
+                _ => Err(ParseFileError::SerializeError(
+                    "tx_type ожидается: [DEPOSIT, WITHDRAWAL, TRANSFER]",
+                )),
+            }?;
             let status = match STATUS.as_str() {
                 "SUCCESS" => Ok(OperationStatus::SUCCESS),
                 "FAILURE" => Ok(OperationStatus::FAILURE),
                 "PENDING" => Ok(OperationStatus::PENDING),
-                _ => Err(()),
-            }
-            .or(Err(ParseFileError::SerializeError(
-                "Неверный статус операции",
-            )))?;
-            let operation = Operation::load(
-                TX_ID,
-                TIMESTAMP,
-                tx_type,
-                status,
-                Some(format!("\"{DESCRIPTION}\"")),
-            );
+                _ => Err(ParseFileError::SerializeError(
+                    "status ожидается: [PENDING, SUCCESS, FAILURE]",
+                )),
+            }?;
+            let operation = Operation::load(TX_ID, TIMESTAMP, tx_type, status, Some(DESCRIPTION));
 
             Ok(OperationName(operation, name.to_string()))
         })

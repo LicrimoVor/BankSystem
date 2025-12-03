@@ -97,8 +97,8 @@ mod tests {
         let res_txt = FromFile::operations(&mut buf_r, FileType::TXT).unwrap();
 
         for i in 0..res_csv.len() {
-            assert_eq!(res_csv[i], res_bin[i]);
             assert_eq!(res_csv[i], res_txt[i]);
+            assert_eq!(res_csv[i], res_bin[i]);
         }
     }
 }

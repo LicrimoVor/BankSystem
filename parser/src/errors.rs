@@ -9,7 +9,7 @@ use thiserror::Error;
 #[derive(Debug, Error)]
 pub enum ParseFileError {
     #[error("I/O ошибка: {0}")]
-    IoError(std::io::Error),
+    IoError(#[from] std::io::Error),
 
     #[error("Неверный формат: {0}")]
     SerializeError(&'static str),

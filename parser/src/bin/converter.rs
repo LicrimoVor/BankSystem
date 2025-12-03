@@ -26,6 +26,8 @@ struct Cli {
 }
 
 fn main() {
+    tracing_subscriber::fmt::init();
+
     let Cli {
         input,
         input_type,

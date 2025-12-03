@@ -24,13 +24,11 @@ pub(super) fn parse_to_csv<W: std::io::Write>(
         let (tx_type, amount, from_name, to_name) = match &op.tx_type {
             OperationType::Deposit(amount) => ("DEPOSIT", amount, "0", name.as_str()),
             OperationType::Withdraw(amount) => ("WITHDRAWAL", amount, name.as_str(), "0"),
-
             // будем учитывать операцию перевода только с
             // аккаунта-получателя
             OperationType::Transfer(from_name, amount, true) => {
                 ("TRANSFER", amount, from_name.as_str(), name.as_str())
             }
-
             // пропускаем операции перевода с аккаунта-отправителя
             OperationType::Transfer(_, _, false) => continue,
             OperationType::Close => continue,

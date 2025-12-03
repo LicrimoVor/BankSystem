@@ -1,6 +1,8 @@
 mod bin;
 mod csv;
 mod txt;
+use tracing::{error, instrument};
+
 use crate::{FileType, OperationName, errors::ParseFileError};
 
 /// ## Парсит файл в зависимости от его типа
@@ -14,6 +16,7 @@ impl ToFile {
     /// * `w` - writer
     /// * `operations` - операции
     /// * `file_type` - тип файла
+    #[instrument(skip(w), name = "parse_operations_to_file")]
     pub fn operations<W: std::io::Write>(
         w: &mut W,
         operations: &[OperationName],
@@ -24,5 +27,6 @@ impl ToFile {
             FileType::CSV => csv::parse_to_csv(w, operations),
             FileType::TXT => txt::parse_to_txt(w, operations),
         }
+        .inspect_err(|e| error!("ошибка при парсинге операций: {}", e))
     }
 }

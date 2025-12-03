@@ -1,6 +1,7 @@
 use crate::{OperationName, errors::ParseFileError};
 use bank::balance::operations::{Operation, OperationStatus, OperationType};
 
+/// Получение значения атрибута строки
 fn get_atr(rows: &str, atr_name: &str) -> Option<String> {
     let Some(i_st) = rows.find(atr_name) else {
         return None;
@@ -19,8 +20,10 @@ pub(super) fn parse_from_txt<R: std::io::Read>(
     r: &mut R,
 ) -> Result<Vec<OperationName>, ParseFileError> {
     let mut buf = String::new();
-    r.read_to_string(&mut buf)
-        .or_else(|e| Err(ParseFileError::IoError(e)))?;
+    r.read_to_string(&mut buf).or_else(|e| {
+        tracing::error!("Ошибка чтения: {}", e);
+        Err(ParseFileError::IoError(e))
+    })?;
 
     let data: Vec<&str> = buf.split("\n\n").collect();
 
@@ -29,41 +32,41 @@ pub(super) fn parse_from_txt<R: std::io::Read>(
         .map(|rows| {
             let len_rows = rows.split("\n").count();
             if len_rows != 9 {
-                return Err(ParseFileError::SerializeError("Неверный формат строки"));
+                return Err(ParseFileError::SerializeError(
+                    "rоличество строк не соответствует 9",
+                ));
             }
 
             let tx_type = get_atr(rows, "TX_TYPE")
-                .ok_or(ParseFileError::SerializeError("Неверный формат tx_type"))?;
+                .ok_or(ParseFileError::SerializeError("missing tx_type"))?;
             let to_user_id = get_atr(rows, "TO_USER_ID")
-                .ok_or(ParseFileError::SerializeError("Неверный формат to_user_id"))?;
-            let from_user_id = get_atr(rows, "FROM_USER_ID").ok_or(
-                ParseFileError::SerializeError("Неверный формат from_user_id"),
-            )?;
+                .ok_or(ParseFileError::SerializeError("missing to_user_id"))?;
+            let from_user_id = get_atr(rows, "FROM_USER_ID")
+                .ok_or(ParseFileError::SerializeError("missing from_user_id"))?;
             let timestamp = get_atr(rows, "TIMESTAMP")
-                .ok_or(ParseFileError::SerializeError("Неверный формат timestamp"))?;
-            let description = get_atr(rows, "DESCRIPTION").ok_or(
-                ParseFileError::SerializeError("Неверный формат description"),
-            )?;
-            let tx_id = get_atr(rows, "TX_ID")
-                .ok_or(ParseFileError::SerializeError("Неверный формат tx_id"))?;
-            let amount = get_atr(rows, "AMOUNT")
-                .ok_or(ParseFileError::SerializeError("Неверный формат amount"))?;
-            let status = get_atr(rows, "STATUS")
-                .ok_or(ParseFileError::SerializeError("Неверный формат status"))?;
+                .ok_or(ParseFileError::SerializeError("missing timestamp"))?;
+            let description = get_atr(rows, "DESCRIPTION")
+                .ok_or(ParseFileError::SerializeError("missing description"))?
+                .trim_matches('"')
+                .to_string();
+            let tx_id =
+                get_atr(rows, "TX_ID").ok_or(ParseFileError::SerializeError("missing tx_id"))?;
+            let amount =
+                get_atr(rows, "AMOUNT").ok_or(ParseFileError::SerializeError("missing amount"))?;
+            let status =
+                get_atr(rows, "STATUS").ok_or(ParseFileError::SerializeError("missing status"))?;
 
             let timestamp = timestamp
                 .parse::<u64>()
                 .or(Err(ParseFileError::SerializeError(
-                    "Неверный формат timestamp",
+                    "timestamp ожидается u64",
                 )))?;
             let amount = amount
                 .parse::<u64>()
-                .or(Err(ParseFileError::SerializeError(
-                    "Неверный формат amount",
-                )))?;
+                .or(Err(ParseFileError::SerializeError("amount ожидается u64")))?;
             let tx_id = tx_id
                 .parse::<u64>()
-                .or(Err(ParseFileError::SerializeError("Неверный формат tx_id")))?;
+                .or(Err(ParseFileError::SerializeError("tx_id ожидается u64")))?;
 
             let (tx_type, name) = match tx_type.as_str() {
                 "DEPOSIT" => Ok((OperationType::Deposit(amount), to_user_id)),
@@ -72,14 +75,18 @@ pub(super) fn parse_from_txt<R: std::io::Read>(
                     OperationType::Transfer(from_user_id.clone(), amount, true),
                     to_user_id,
                 )),
-                _ => Err(ParseFileError::SerializeError("Неверный формат tx_type")),
+                _ => Err(ParseFileError::SerializeError(
+                    "tx_type ожидается: [DEPOSIT, WITHDRAWAL, TRANSFER]",
+                )),
             }?;
 
             let status = match status.as_str() {
                 "PENDING" => Ok(OperationStatus::PENDING),
                 "SUCCESS" => Ok(OperationStatus::SUCCESS),
                 "FAILURE" => Ok(OperationStatus::FAILURE),
-                _ => Err(ParseFileError::SerializeError("Неверный формат status")),
+                _ => Err(ParseFileError::SerializeError(
+                    "status ожидается: [PENDING, SUCCESS, FAILURE]",
+                )),
             }?;
             let operation = Operation::load(tx_id, timestamp, tx_type, status, Some(description));
 

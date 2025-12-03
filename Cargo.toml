@@ -6,3 +6,5 @@ members = ["macros", "parser", "bank", "app"]
 regex = "1"
 assert_matches = "1.5"
 thiserror = "2.0"
+tracing = "0.1"
+tracing-subscriber = "0.3"
