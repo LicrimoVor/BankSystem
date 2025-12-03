@@ -1,11 +1,11 @@
 use crate::{OperationName, errors::ParseFileError};
 use bank::balance::operations::{OperationStatus, OperationType};
 
-pub fn parse_to_txt<W: std::io::Write>(
+pub(super) fn parse_to_txt<W: std::io::Write>(
     w: &mut W,
-    operations: &Vec<OperationName>,
+    operations: &[OperationName],
 ) -> Result<(), ParseFileError> {
-    for (i, op) in operations.into_iter().enumerate() {
+    for (i, op) in operations.iter().enumerate() {
         let OperationName(op, name) = op;
         let (tx_type, amount, from_name, to_name) = match &op.tx_type {
             OperationType::Deposit(amount) => ("DEPOSIT", amount, "0", name.as_str()),
@@ -41,7 +41,7 @@ TIMESTAMP: {timestamp}
 STATUS: {status}
 DESCRIPTION: {description}",
         );
-        write!(w, "{data}\n\n").or_else(|e| Err(ParseFileError::WriteError(e)))?;
+        write!(w, "{data}\n\n").or_else(|e| Err(ParseFileError::IoError(e)))?;
     }
 
     Ok(())

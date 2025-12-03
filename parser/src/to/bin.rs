@@ -1,13 +1,13 @@
 use crate::{OperationName, errors::ParseFileError};
 use bank::balance::operations::{OperationStatus, OperationType};
 
-pub fn parse_to_bin<W: std::io::Write>(
+pub(super) fn parse_to_bin<W: std::io::Write>(
     w: &mut W,
-    operations: &Vec<OperationName>,
+    operations: &[OperationName],
 ) -> Result<(), ParseFileError> {
     for op in operations {
         w.write("YPBN".as_bytes())
-            .or_else(|e| Err(ParseFileError::WriteError(e)))?;
+            .or_else(|e| Err(ParseFileError::IoError(e)))?;
 
         let mut body: Vec<u8> = vec![];
         let OperationName(op, name) = op;
@@ -26,36 +26,38 @@ pub fn parse_to_bin<W: std::io::Write>(
             OperationType::Transfer(_, _, false) => continue,
             OperationType::Close => continue,
         };
-        let from_name = from_name.parse::<u64>().or(Err(ParseFileError::ParseError(
-            "Пользователь должен иметь ID",
-        )))?;
-        let to_name = to_name.parse::<u64>().or(Err(ParseFileError::ParseError(
-            "Пользователь должен иметь ID",
-        )))?;
+        let from_name = from_name
+            .parse::<u64>()
+            .or(Err(ParseFileError::SerializeError(
+                "Пользователь должен иметь ID",
+            )))?;
+        let to_name = to_name
+            .parse::<u64>()
+            .or(Err(ParseFileError::SerializeError(
+                "Пользователь должен иметь ID",
+            )))?;
         let status: u8 = match &op.status {
             OperationStatus::SUCCESS => 0,
             OperationStatus::FAILURE => 1,
             OperationStatus::PENDING => 2,
         };
-        let mut id = op.id().to_be_bytes().to_vec();
-        body.append(&mut id);
+        body.extend_from_slice(&op.id().to_be_bytes());
         body.push(tx_type.into());
-        body.append(&mut from_name.to_be_bytes().to_vec());
-        body.append(&mut to_name.to_be_bytes().to_vec());
-        body.append(&mut amount.to_be_bytes().to_vec());
-        body.append(&mut op.timestamp().to_be_bytes().to_vec());
+        body.extend_from_slice(&mut from_name.to_be_bytes());
+        body.extend_from_slice(&mut to_name.to_be_bytes());
+        body.extend_from_slice(&mut amount.to_be_bytes());
+        body.extend_from_slice(&mut op.timestamp().to_be_bytes());
         body.push(status);
 
-        let mut description = op.description.as_bytes().to_vec();
-        let desc_len = description.len() as u32;
-        body.append(&mut desc_len.to_be_bytes().to_vec());
-        body.append(&mut description);
+        let description = op.description.as_bytes();
+        body.extend_from_slice(&(description.len() as u32).to_be_bytes());
+        body.extend_from_slice(&description);
 
         let body_len = body.len() as u32;
         w.write(&body_len.to_be_bytes())
-            .or_else(|e| Err(ParseFileError::WriteError(e)))?;
+            .or_else(|e| Err(ParseFileError::IoError(e)))?;
         w.write(&body)
-            .or_else(|e| Err(ParseFileError::WriteError(e)))?;
+            .or_else(|e| Err(ParseFileError::IoError(e)))?;
     }
 
     Ok(())

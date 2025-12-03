@@ -1,13 +1,23 @@
+#![deny(unreachable_pub)]
 pub mod errors;
 pub mod from;
 pub mod to;
 use bank::{Name, balance::operations::Operation};
+use clap::ValueEnum;
 
-/// Тип файла
-#[derive(Debug, PartialEq, Clone)]
+/// ## Тип файла
+///
+/// ### Возможные значения
+/// - [FileType::CSV] - Csv формат файла
+/// - [FileType::TXT] - Txt формат файла
+/// - [FileType::BIN] - Bin формат файла
+#[derive(Debug, PartialEq, Clone, ValueEnum)]
 pub enum FileType {
+    /// Csv формат файла
     CSV,
+    /// Txt формат файла
     TXT,
+    /// Bin формат файла
     BIN,
 }
 

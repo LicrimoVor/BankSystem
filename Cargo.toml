@@ -5,3 +5,4 @@ members = ["macros", "parser", "bank", "app"]
 [workspace.dependencies]
 regex = "1"
 assert_matches = "1.5"
+thiserror = "2.0"

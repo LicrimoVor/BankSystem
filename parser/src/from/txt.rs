@@ -15,7 +15,9 @@ fn get_atr(rows: &str, atr_name: &str) -> Option<String> {
 }
 
 /// Преобразование txt-файла в список операций
-pub fn parse_from_txt<R: std::io::Read>(r: &mut R) -> Result<Vec<OperationName>, ParseFileError> {
+pub(super) fn parse_from_txt<R: std::io::Read>(
+    r: &mut R,
+) -> Result<Vec<OperationName>, ParseFileError> {
     let mut buf = String::new();
     r.read_to_string(&mut buf)
         .or_else(|e| Err(ParseFileError::IoError(e)))?;
@@ -27,35 +29,41 @@ pub fn parse_from_txt<R: std::io::Read>(r: &mut R) -> Result<Vec<OperationName>,
         .map(|rows| {
             let len_rows = rows.split("\n").count();
             if len_rows != 9 {
-                return Err(ParseFileError::ParseError("Неверный формат строки"));
+                return Err(ParseFileError::SerializeError("Неверный формат строки"));
             }
 
             let tx_type = get_atr(rows, "TX_TYPE")
-                .ok_or(ParseFileError::ParseError("Неверный формат tx_type"))?;
+                .ok_or(ParseFileError::SerializeError("Неверный формат tx_type"))?;
             let to_user_id = get_atr(rows, "TO_USER_ID")
-                .ok_or(ParseFileError::ParseError("Неверный формат to_user_id"))?;
-            let from_user_id = get_atr(rows, "FROM_USER_ID")
-                .ok_or(ParseFileError::ParseError("Неверный формат from_user_id"))?;
+                .ok_or(ParseFileError::SerializeError("Неверный формат to_user_id"))?;
+            let from_user_id = get_atr(rows, "FROM_USER_ID").ok_or(
+                ParseFileError::SerializeError("Неверный формат from_user_id"),
+            )?;
             let timestamp = get_atr(rows, "TIMESTAMP")
-                .ok_or(ParseFileError::ParseError("Неверный формат timestamp"))?;
-            let description = get_atr(rows, "DESCRIPTION")
-                .ok_or(ParseFileError::ParseError("Неверный формат description"))?;
+                .ok_or(ParseFileError::SerializeError("Неверный формат timestamp"))?;
+            let description = get_atr(rows, "DESCRIPTION").ok_or(
+                ParseFileError::SerializeError("Неверный формат description"),
+            )?;
             let tx_id = get_atr(rows, "TX_ID")
-                .ok_or(ParseFileError::ParseError("Неверный формат tx_id"))?;
+                .ok_or(ParseFileError::SerializeError("Неверный формат tx_id"))?;
             let amount = get_atr(rows, "AMOUNT")
-                .ok_or(ParseFileError::ParseError("Неверный формат amount"))?;
+                .ok_or(ParseFileError::SerializeError("Неверный формат amount"))?;
             let status = get_atr(rows, "STATUS")
-                .ok_or(ParseFileError::ParseError("Неверный формат status"))?;
+                .ok_or(ParseFileError::SerializeError("Неверный формат status"))?;
 
             let timestamp = timestamp
                 .parse::<u64>()
-                .or(Err(ParseFileError::ParseError("Неверный формат timestamp")))?;
+                .or(Err(ParseFileError::SerializeError(
+                    "Неверный формат timestamp",
+                )))?;
             let amount = amount
                 .parse::<u64>()
-                .or(Err(ParseFileError::ParseError("Неверный формат amount")))?;
+                .or(Err(ParseFileError::SerializeError(
+                    "Неверный формат amount",
+                )))?;
             let tx_id = tx_id
                 .parse::<u64>()
-                .or(Err(ParseFileError::ParseError("Неверный формат tx_id")))?;
+                .or(Err(ParseFileError::SerializeError("Неверный формат tx_id")))?;
 
             let (tx_type, name) = match tx_type.as_str() {
                 "DEPOSIT" => Ok((OperationType::Deposit(amount), to_user_id)),
@@ -64,14 +72,14 @@ pub fn parse_from_txt<R: std::io::Read>(r: &mut R) -> Result<Vec<OperationName>,
                     OperationType::Transfer(from_user_id.clone(), amount, true),
                     to_user_id,
                 )),
-                _ => Err(ParseFileError::ParseError("Неверный формат tx_type")),
+                _ => Err(ParseFileError::SerializeError("Неверный формат tx_type")),
             }?;
 
             let status = match status.as_str() {
                 "PENDING" => Ok(OperationStatus::PENDING),
                 "SUCCESS" => Ok(OperationStatus::SUCCESS),
                 "FAILURE" => Ok(OperationStatus::FAILURE),
-                _ => Err(ParseFileError::ParseError("Неверный формат status")),
+                _ => Err(ParseFileError::SerializeError("Неверный формат status")),
             }?;
             let operation = Operation::load(tx_id, timestamp, tx_type, status, Some(description));
 

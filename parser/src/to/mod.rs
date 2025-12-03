@@ -3,14 +3,20 @@ mod csv;
 mod txt;
 use crate::{FileType, OperationName, errors::ParseFileError};
 
-/// Парсит файл в зависимости от его типа
+/// ## Парсит файл в зависимости от его типа
 /// (пока только операции)
 pub struct ToFile;
 
 impl ToFile {
+    /// ## Парсит операции в зависимости от типа файла
+    ///
+    /// ### Arguments
+    /// * `w` - writer
+    /// * `operations` - операции
+    /// * `file_type` - тип файла
     pub fn operations<W: std::io::Write>(
         w: &mut W,
-        operations: &Vec<OperationName>,
+        operations: &[OperationName],
         file_type: FileType,
     ) -> Result<(), ParseFileError> {
         match file_type {

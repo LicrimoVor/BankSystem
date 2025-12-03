@@ -2,7 +2,9 @@ use crate::{OperationName, errors::ParseFileError};
 use bank::balance::operations::{Operation, OperationStatus, OperationType};
 
 /// Преобразование bin-файла в список операций
-pub fn parse_from_bin<R: std::io::Read>(r: &mut R) -> Result<Vec<OperationName>, ParseFileError> {
+pub(super) fn parse_from_bin<R: std::io::Read>(
+    r: &mut R,
+) -> Result<Vec<OperationName>, ParseFileError> {
     let mut bytes = Vec::new();
     r.read_to_end(&mut bytes)
         .or_else(|e| Err(ParseFileError::IoError(e)))?;
@@ -55,7 +57,7 @@ pub fn parse_from_bin<R: std::io::Read>(r: &mut R) -> Result<Vec<OperationName>,
 
                 res
             }
-            .or(Err(ParseFileError::ParseError("Неверный тип операции")))?;
+            .or(Err(ParseFileError::SerializeError("Неверный тип операции")))?;
             let from_user = {
                 let end = i + 8;
                 let arr: [u8; 8] = row[i..end].try_into().expect("REASON");
@@ -90,7 +92,9 @@ pub fn parse_from_bin<R: std::io::Read>(r: &mut R) -> Result<Vec<OperationName>,
                 i += 1;
                 res
             }
-            .or(Err(ParseFileError::ParseError("Неверный статус операции")))?;
+            .or(Err(ParseFileError::SerializeError(
+                "Неверный статус операции",
+            )))?;
             let desc_len = {
                 let end = i + 4;
                 let arr: [u8; 4] = row[i..end].try_into().expect("REASON");

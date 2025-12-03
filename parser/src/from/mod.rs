@@ -4,11 +4,16 @@ mod txt;
 
 use crate::{FileType, OperationName, errors::ParseFileError};
 
-/// Парсит фаил в зависимости от его типа
+/// ## Парсит фаил в зависимости от его типа
 /// (пока только операции)
 pub struct FromFile;
 
 impl FromFile {
+    /// ## Парсит операции в зависимости от типа файла
+    ///
+    /// ### Arguments
+    /// * `r` - reader
+    /// * `file_type` - тип файла
     pub fn operations<R: std::io::Read>(
         r: &mut R,
         file_type: FileType,

@@ -3,11 +3,18 @@ name = "parser"
 version = "0.7.0"
 edition = "2024"
 
+[features]
+default = ["dev"]
+dev = [""]
+
+prd = []
+
 [dependencies]
 bank = { path = "../bank" }
 csv = "1"
 serde = { version = "1", features = ["derive"] }
 clap = { version = "4", features = ["derive"] }
+thiserror = { workspace = true }
 
 [dev-dependencies]
 assert_matches = { workspace = true }

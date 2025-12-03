@@ -16,14 +16,16 @@ struct Record {
 }
 
 /// Преобразование csv-файла в список операций
-pub fn parse_from_csv<R: std::io::Read>(r: &mut R) -> Result<Vec<OperationName>, ParseFileError> {
+pub(super) fn parse_from_csv<R: std::io::Read>(
+    r: &mut R,
+) -> Result<Vec<OperationName>, ParseFileError> {
     let mut rdr = csv::Reader::from_reader(r);
 
     let operations: Vec<Result<OperationName, ParseFileError>> = rdr
         .deserialize::<Record>()
         .map(|row| {
             let Ok(row) = row else {
-                return Err(ParseFileError::ParseError("Неверный формат строки"));
+                return Err(ParseFileError::SerializeError("Неверный формат строки"));
             };
             let Record {
                 TX_ID,
@@ -45,7 +47,7 @@ pub fn parse_from_csv<R: std::io::Read>(r: &mut R) -> Result<Vec<OperationName>,
                 "WITHDRAWAL" => Ok((OperationType::Withdraw(AMOUNT), FROM_USER_ID)),
                 _ => Err(()),
             }
-            .or(Err(ParseFileError::ParseError("Неверный тип операции")))?;
+            .or(Err(ParseFileError::SerializeError("Неверный тип операции")))?;
 
             let status = match STATUS.as_str() {
                 "SUCCESS" => Ok(OperationStatus::SUCCESS),
@@ -53,7 +55,9 @@ pub fn parse_from_csv<R: std::io::Read>(r: &mut R) -> Result<Vec<OperationName>,
                 "PENDING" => Ok(OperationStatus::PENDING),
                 _ => Err(()),
             }
-            .or(Err(ParseFileError::ParseError("Неверный статус операции")))?;
+            .or(Err(ParseFileError::SerializeError(
+                "Неверный статус операции",
+            )))?;
             let operation = Operation::load(
                 TX_ID,
                 TIMESTAMP,

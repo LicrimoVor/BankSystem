@@ -40,7 +40,8 @@ fn main() {
         println!("Вы точно уверены? Y/N");
         let mut a = String::new();
         std::io::stdin().read_line(&mut a).unwrap();
-        if a == "N" || a == "n" {
+        let a = a.trim().to_lowercase();
+        if a == "n\n" || a == "n" {
             return;
         }
     }

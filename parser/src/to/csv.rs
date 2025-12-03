@@ -12,11 +12,11 @@ const HEADER: [&str; 8] = [
     "DESCRIPTION",
 ];
 
-pub fn parse_to_csv<W: std::io::Write>(
+pub(super) fn parse_to_csv<W: std::io::Write>(
     w: &mut W,
-    operations: &Vec<OperationName>,
+    operations: &[OperationName],
 ) -> Result<(), ParseFileError> {
-    write!(w, "{}\n", HEADER.join(",")).or_else(|e| Err(ParseFileError::WriteError(e)))?;
+    write!(w, "{}\n", HEADER.join(",")).or_else(|e| Err(ParseFileError::IoError(e)))?;
 
     for op in operations {
         let mut row: Vec<String> = Vec::new();
@@ -50,7 +50,7 @@ pub fn parse_to_csv<W: std::io::Write>(
         row.push(op.timestamp().to_string());
         row.push(status.to_string());
         row.push(op.description.to_string());
-        write!(w, "{}\n", row.join(",")).or_else(|e| Err(ParseFileError::WriteError(e)))?;
+        write!(w, "{}\n", row.join(",")).or_else(|e| Err(ParseFileError::IoError(e)))?;
     }
 
     Ok(())
