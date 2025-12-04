@@ -3,7 +3,7 @@ mod csv;
 mod txt;
 use tracing::{error, instrument};
 
-use crate::{FileType, OperationName, errors::ParseFileError};
+use crate::{OperationName, errors::ParseFileError, types::FileType};
 
 /// ## Парсит файл в зависимости от его типа
 /// (пока только операции)

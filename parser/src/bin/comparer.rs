@@ -1,5 +1,6 @@
+use anyhow::Result;
 use clap::Parser;
-use parser::{FileType, from::FromFile};
+use parser::{from::FromFile, types::FileType};
 use std::{fs::File, io::BufReader};
 
 #[derive(Parser, Debug)]
@@ -11,7 +12,7 @@ struct Cli {
 
     /// Тип файла 1
     #[arg(long)]
-    file1_type: Option<String>,
+    file1_type: Option<FileType>,
 
     /// Файл 2
     #[arg(long)]
@@ -19,21 +20,27 @@ struct Cli {
 
     /// Тип файла 2
     #[arg(long)]
-    file2_type: Option<String>,
+    file2_type: Option<FileType>,
 }
 
-fn main() {
+fn main() -> Result<()> {
     let Cli {
-        file1,
-        file1_type,
-        file2,
-        file2_type,
+        file1: f1,
+        file1_type: f1_tp,
+        file2: f2,
+        file2_type: f2_tp,
     } = Cli::parse();
 
-    let file1_type_default = file1.split('.').last().unwrap().to_string();
-    let file2_type_default = file2.split('.').last().unwrap().to_string();
-    let file1_type = file1_type.unwrap_or(file1_type_default.clone());
-    let file2_type = file2_type.unwrap_or(file2_type_default.clone());
+    let f1_tp_default = FileType::try_from(f1.split('.').last().unwrap().to_string()).ok();
+    let f2_tp_default = FileType::try_from(f2.split('.').last().unwrap().to_string()).ok();
+
+    if f1_tp.is_none() && f1_tp_default.is_none() {
+        println!("Типы входных файлов не указаны");
+        return;
+    } else if f2_tp.is_none() || f2_tp_default.is_none() {
+        println!("Тип выходного файла не указан");
+        return;
+    }
 
     if file1_type != file1_type_default || file2_type != file2_type_default {
         println!("Типы не соответствуют названию первого и второго файлов");
@@ -45,20 +52,6 @@ fn main() {
             return;
         }
     }
-
-    let file1_type = match file1_type.as_str() {
-        "txt" => FileType::TXT,
-        "csv" => FileType::CSV,
-        "bin" => FileType::BIN,
-        _ => panic!("Unknown input type"),
-    };
-
-    let file2_type = match file2_type.as_str() {
-        "txt" => FileType::TXT,
-        "csv" => FileType::CSV,
-        "bin" => FileType::BIN,
-        _ => panic!("Unknown output type"),
-    };
 
     let mut buf_r: BufReader<File> = BufReader::new(File::open(file1).unwrap());
     let operations1 = FromFile::operations(&mut buf_r, file1_type).unwrap();
@@ -76,6 +69,8 @@ fn main() {
         }
     }
     println!("Сравнение окончено");
+
+    Ok(())
 }
 
 #[cfg(test)]

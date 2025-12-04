@@ -1,5 +1,5 @@
 use clap::Parser;
-use parser::{FileType, from::FromFile, to::ToFile};
+use parser::{from::FromFile, to::ToFile, types::FileType};
 use std::{
     fs::File,
     io::{BufReader, BufWriter},

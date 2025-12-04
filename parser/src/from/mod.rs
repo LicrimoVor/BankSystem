@@ -2,7 +2,7 @@ mod bin;
 mod csv;
 mod txt;
 
-use crate::{FileType, OperationName, errors::ParseFileError};
+use crate::{OperationName, errors::ParseFileError, types::FileType};
 use tracing::{error, info, instrument};
 
 /// ## Парсит фаил в зависимости от его типа

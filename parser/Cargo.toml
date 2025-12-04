@@ -1,16 +1,19 @@
 [package]
 name = "parser"
-version = "0.7.0"
+version = "0.7.5"
 edition = "2024"
 
 [dependencies]
 bank = { path = "../bank" }
 csv = "1"
 serde = { version = "1", features = ["derive"] }
-clap = { version = "4", features = ["derive"] }
 thiserror = { workspace = true }
 tracing = { workspace = true }
+
+# cli
 tracing-subscriber = { workspace = true }
+clap = { version = "4", features = ["derive"] }
+anyhow = { version = "1" }
 
 [dev-dependencies]
 assert_matches = { workspace = true }
