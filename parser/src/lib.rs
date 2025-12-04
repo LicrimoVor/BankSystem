@@ -2,6 +2,7 @@
 pub mod errors;
 pub mod from;
 pub mod to;
+pub(crate) mod types;
 use bank::{Name, balance::operations::Operation};
 use clap::ValueEnum;
 

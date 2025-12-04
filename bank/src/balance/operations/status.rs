@@ -1,8 +1,9 @@
 use super::OperationError;
+use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
 /// Статус операции
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Status {
     FAILURE,
     PENDING,

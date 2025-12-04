@@ -1,19 +1,5 @@
-use crate::{OperationName, errors::ParseFileError};
-use bank::balance::operations::{Operation, OperationStatus, OperationType};
-use serde::Deserialize;
-
-#[derive(Deserialize)]
-#[allow(non_snake_case)]
-struct Record {
-    TX_ID: u64,
-    TX_TYPE: String,
-    FROM_USER_ID: u64,
-    TO_USER_ID: u64,
-    AMOUNT: u64,
-    TIMESTAMP: u64,
-    STATUS: String,
-    DESCRIPTION: String,
-}
+use crate::{OperationName, errors::ParseFileError, types::CsvRecord};
+use bank::balance::operations::{Operation, OperationType};
 
 /// Преобразование csv-файла в список операций
 pub(super) fn parse_from_csv<R: std::io::Read>(
@@ -22,12 +8,12 @@ pub(super) fn parse_from_csv<R: std::io::Read>(
     let mut rdr = csv::Reader::from_reader(r);
 
     let operations: Vec<Result<OperationName, ParseFileError>> = rdr
-        .deserialize::<Record>()
+        .deserialize::<CsvRecord>()
         .map(|row| {
             let Ok(row) = row else {
                 return Err(ParseFileError::SerializeError("Не соответствует шаблону"));
             };
-            let Record {
+            let CsvRecord {
                 TX_ID,
                 TX_TYPE,
                 FROM_USER_ID,
@@ -49,15 +35,7 @@ pub(super) fn parse_from_csv<R: std::io::Read>(
                     "tx_type ожидается: [DEPOSIT, WITHDRAWAL, TRANSFER]",
                 )),
             }?;
-            let status = match STATUS.as_str() {
-                "SUCCESS" => Ok(OperationStatus::SUCCESS),
-                "FAILURE" => Ok(OperationStatus::FAILURE),
-                "PENDING" => Ok(OperationStatus::PENDING),
-                _ => Err(ParseFileError::SerializeError(
-                    "status ожидается: [PENDING, SUCCESS, FAILURE]",
-                )),
-            }?;
-            let operation = Operation::load(TX_ID, TIMESTAMP, tx_type, status, Some(DESCRIPTION));
+            let operation = Operation::load(TX_ID, TIMESTAMP, tx_type, STATUS, Some(DESCRIPTION));
 
             Ok(OperationName(operation, name.to_string()))
         })

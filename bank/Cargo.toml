@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 macros = { path = "../macros" }
 regex = { workspace = true }
+serde = { version = "1", features = ["derive"] }
 
 [dev-dependencies]
 assert_matches = { workspace = true }

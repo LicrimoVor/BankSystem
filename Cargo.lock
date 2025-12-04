@@ -81,6 +81,7 @@ dependencies = [
  "assert_matches",
  "macros",
  "regex",
+ "serde",
  "tempfile",
 ]
 

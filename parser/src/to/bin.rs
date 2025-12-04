@@ -6,7 +6,7 @@ pub(super) fn parse_to_bin<W: std::io::Write>(
     operations: &[OperationName],
 ) -> Result<(), ParseFileError> {
     for op in operations {
-        w.write("YPBN".as_bytes())
+        w.write_all("YPBN".as_bytes())
             .or_else(|e| Err(ParseFileError::IoError(e)))?;
 
         let mut body: Vec<u8> = vec![];
@@ -49,16 +49,18 @@ pub(super) fn parse_to_bin<W: std::io::Write>(
         body.extend_from_slice(&mut op.timestamp().to_be_bytes());
         body.push(status);
 
-        let description = op.description.as_bytes();
-        body.extend_from_slice(&(description.len() as u32).to_be_bytes());
-        body.extend_from_slice(&description);
+        let desc_str = format!("\"{}\"", op.description);
+        let desc_bytes = desc_str.as_bytes();
+        body.extend_from_slice(&(desc_bytes.len() as u32).to_be_bytes());
+        body.extend_from_slice(&desc_bytes);
 
         let body_len = body.len() as u32;
-        w.write(&body_len.to_be_bytes())
+        w.write_all(&body_len.to_be_bytes())
             .or_else(|e| Err(ParseFileError::IoError(e)))?;
-        w.write(&body)
+        w.write_all(&body)
             .or_else(|e| Err(ParseFileError::IoError(e)))?;
     }
+    w.flush()?;
 
     Ok(())
 }
@@ -83,7 +85,7 @@ mod tests {
                 1633036860000,
                 OperationType::Deposit(100),
                 OperationStatus::FAILURE,
-                Some("\"Record number 1\"".to_string()),
+                Some("Record number 1".to_string()),
             ),
             "9223372036854775807".to_string(),
         )];

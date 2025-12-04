@@ -29,7 +29,7 @@ pub(super) fn parse_to_txt<W: std::io::Write>(
         let indx = i + 1;
         let id = op.id();
         let timestamp = op.timestamp();
-        let description = &op.description;
+        let description = format!("\"{}\"", op.description);
         let data = format!(
             "# Record {indx} ({tx_type})
 TX_ID: {id}
@@ -41,9 +41,9 @@ TIMESTAMP: {timestamp}
 STATUS: {status}
 DESCRIPTION: {description}",
         );
-        write!(w, "{data}\n\n").or_else(|e| Err(ParseFileError::IoError(e)))?;
+        writeln!(w, "{data}\n").or_else(|e| Err(ParseFileError::IoError(e)))?;
     }
-
+    w.flush()?;
     Ok(())
 }
 
@@ -54,7 +54,7 @@ mod tests {
     use std::io::BufWriter;
 
     #[test]
-    fn test_parse_to_bin_success() {
+    fn test_parse_to_txt_success() {
         let answer = "# Record 1 (DEPOSIT)
 TX_ID: 1000000000000000
 TX_TYPE: DEPOSIT
@@ -72,7 +72,7 @@ DESCRIPTION: \"Record number 1\"
                 1633036860000,
                 OperationType::Deposit(100),
                 OperationStatus::FAILURE,
-                Some("\"Record number 1\"".to_string()),
+                Some("Record number 1".to_string()),
             ),
             "9223372036854775807".to_string(),
         )];
