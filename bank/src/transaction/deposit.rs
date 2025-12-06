@@ -27,8 +27,8 @@ impl Transaction for Deposit {
     }
 }
 
-impl Into<OperationType> for Deposit {
-    fn into(self) -> OperationType {
-        OperationType::Deposit(self.amount)
+impl From<Deposit> for OperationType {
+    fn from(val: Deposit) -> Self {
+        OperationType::Deposit(val.amount)
     }
 }

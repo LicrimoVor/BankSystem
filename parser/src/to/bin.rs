@@ -7,7 +7,7 @@ pub(super) fn parse_to_bin<W: std::io::Write>(
 ) -> Result<(), ParseFileError> {
     for op in operations {
         w.write_all("YPBN".as_bytes())
-            .or_else(|e| Err(ParseFileError::IoError(e)))?;
+            .map_err(ParseFileError::IoError)?;
 
         let mut body: Vec<u8> = vec![];
         let OperationName(op, name) = op;
@@ -42,23 +42,22 @@ pub(super) fn parse_to_bin<W: std::io::Write>(
             OperationStatus::PENDING => 2,
         };
         body.extend_from_slice(&op.id().to_be_bytes());
-        body.push(tx_type.into());
-        body.extend_from_slice(&mut from_name.to_be_bytes());
-        body.extend_from_slice(&mut to_name.to_be_bytes());
-        body.extend_from_slice(&mut amount.to_be_bytes());
-        body.extend_from_slice(&mut op.timestamp().to_be_bytes());
+        body.push(tx_type);
+        body.extend_from_slice(&from_name.to_be_bytes());
+        body.extend_from_slice(&to_name.to_be_bytes());
+        body.extend_from_slice(&amount.to_be_bytes());
+        body.extend_from_slice(&op.timestamp().to_be_bytes());
         body.push(status);
 
         let desc_str = format!("\"{}\"", op.description);
         let desc_bytes = desc_str.as_bytes();
         body.extend_from_slice(&(desc_bytes.len() as u32).to_be_bytes());
-        body.extend_from_slice(&desc_bytes);
+        body.extend_from_slice(desc_bytes);
 
         let body_len = body.len() as u32;
         w.write_all(&body_len.to_be_bytes())
-            .or_else(|e| Err(ParseFileError::IoError(e)))?;
-        w.write_all(&body)
-            .or_else(|e| Err(ParseFileError::IoError(e)))?;
+            .map_err(ParseFileError::IoError)?;
+        w.write_all(&body).map_err(ParseFileError::IoError)?;
     }
     w.flush()?;
 

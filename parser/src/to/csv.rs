@@ -44,9 +44,9 @@ pub(super) fn parse_to_csv<W: std::io::Write>(
                 STATUS: op.status.clone(),
                 DESCRIPTION: op.description.clone(),
             })
-            .or_else(|e| match e.into_kind() {
-                csv::ErrorKind::Io(e) => Err(ParseFileError::IoError(e)),
-                _ => Err(ParseFileError::SerializeError("Не соответствует шаблону")),
+            .map_err(|e| match e.into_kind() {
+                csv::ErrorKind::Io(e) => ParseFileError::IoError(e),
+                _ => ParseFileError::SerializeError("Не соответствует шаблону"),
             })?;
     }
 

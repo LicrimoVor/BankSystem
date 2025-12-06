@@ -7,7 +7,7 @@ use bank::{
 use std::io::{self, BufRead, Write};
 
 fn main() {
-    let mut storage = Storage::load_data("balance.csv").unwrap_or(Storage::new());
+    let mut storage = Storage::load_data("balance.csv").unwrap_or_default();
 
     println!("=== Bank CLI Utils ===");
     println!("Команды:");
@@ -32,7 +32,7 @@ fn main() {
             break; // EOF
         }
 
-        let args: Vec<&str> = input.trim().split_whitespace().collect();
+        let args: Vec<&str> = input.split_whitespace().collect();
         if args.is_empty() {
             continue;
         }
@@ -52,7 +52,7 @@ fn main() {
                     }
                 };
                 if storage.add_user(name.clone()).is_some() {
-                    let _ = storage.deposit(&name, balance.into());
+                    let _ = storage.deposit(&name, balance);
                     println!("Пользователь {} добавлен с балансом {}", name, balance);
                     storage.save("balance.csv");
                 } else {

@@ -16,7 +16,7 @@ impl BalanceManager for Storage {
 
         Operation::deposit(id, amount)
             .apply(balance)
-            .map_err(|op_err| BalanceManagerError::OperationError(op_err))?;
+            .map_err(BalanceManagerError::OperationError)?;
 
         Ok(())
     }
@@ -33,7 +33,7 @@ impl BalanceManager for Storage {
 
         Operation::withdraw(id, amount)
             .apply(balance)
-            .map_err(|op_err| BalanceManagerError::OperationError(op_err))?;
+            .map_err(BalanceManagerError::OperationError)?;
 
         Ok(())
     }
@@ -50,18 +50,16 @@ impl BalanceManager for Storage {
             let operation_to = Operation::transfer(id, from.clone(), amount, true);
             operation_from
                 .apply(balance_from)
-                .map_err(|op_err| BalanceManagerError::OperationError(op_err))?;
+                .map_err(BalanceManagerError::OperationError)?;
             operation_to
                 .apply(balance_to)
-                .map_err(|op_err| BalanceManagerError::OperationError(op_err))?;
+                .map_err(BalanceManagerError::OperationError)?;
 
             Ok(())
+        } else if self.accounts.contains_key(from) {
+            Err(BalanceManagerError::UserNotFound(to.clone()))
         } else {
-            if self.accounts.contains_key(from) {
-                Err(BalanceManagerError::UserNotFound(to.clone()))
-            } else {
-                Err(BalanceManagerError::UserNotFound(from.clone()))
-            }
+            Err(BalanceManagerError::UserNotFound(from.clone()))
         }
     }
 }

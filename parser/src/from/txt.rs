@@ -3,14 +3,9 @@ use bank::balance::operations::{Operation, OperationStatus, OperationType};
 
 /// Получение значения атрибута строки
 fn get_atr(rows: &str, atr_name: &str) -> Option<String> {
-    let Some(i_st) = rows.find(atr_name) else {
-        return None;
-    };
-
+    let i_st = rows.find(atr_name)?;
     let i_end = i_st + rows[i_st..].find('\n').unwrap_or(rows.len() - i_st);
-    let Some((_, value)) = rows[i_st..i_end].split_once(":") else {
-        return None;
-    };
+    let (_, value) = rows[i_st..i_end].split_once(":")?;
 
     Some(value.trim().to_string())
 }
@@ -20,10 +15,8 @@ pub(super) fn parse_from_txt<R: std::io::Read>(
     r: &mut R,
 ) -> Result<Vec<OperationName>, ParseFileError> {
     let mut buf = String::new();
-    r.read_to_string(&mut buf).or_else(|e| {
-        tracing::error!("Ошибка чтения: {}", e);
-        Err(ParseFileError::IoError(e))
-    })?;
+    r.read_to_string(&mut buf)
+        .map_err(ParseFileError::IoError)?;
 
     let data: Vec<&str> = buf.split("\n\n").collect();
 
@@ -93,10 +86,10 @@ pub(super) fn parse_from_txt<R: std::io::Read>(
             Ok(OperationName(operation, name.to_string()))
         })
         .collect();
-    if let Some(op) = operations.last() {
-        if op.is_err() {
-            operations.pop();
-        }
+    if let Some(op) = operations.last()
+        && op.is_err()
+    {
+        operations.pop();
     }
     operations.into_iter().collect()
 }

@@ -118,13 +118,11 @@ impl Operation {
                             available: balance.value,
                         })
                     }
+                } else if let Some(res) = balance.value.checked_add(b.into()) {
+                    balance.value = res;
+                    Ok(())
                 } else {
-                    if let Some(res) = balance.value.checked_add(b.into()) {
-                        balance.value = res;
-                        Ok(())
-                    } else {
-                        Err(OperationError::OverLimitSize)
-                    }
+                    Err(OperationError::OverLimitSize)
                 }
             }
             OperationType::Close => {
@@ -143,11 +141,11 @@ impl Operation {
     }
 }
 
-impl Into<String> for Operation {
-    fn into(self) -> String {
+impl From<Operation> for String {
+    fn from(val: Operation) -> Self {
         format!(
             "{},{},{},{},{}",
-            self.id, self.timestamp, self.tx_type, self.status, self.description
+            val.id, val.timestamp, val.tx_type, val.status, val.description
         )
     }
 }

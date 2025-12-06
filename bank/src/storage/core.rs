@@ -2,6 +2,12 @@ use super::Storage;
 use crate::{Name, balance::Balance};
 use std::collections::HashMap;
 
+impl Default for Storage {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Storage {
     /// Создание нового хранилища
     pub fn new() -> Self {

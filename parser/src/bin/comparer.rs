@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Result, bail};
 use clap::Parser;
 use parser::{from::FromFile, types::FileType};
 use std::{fs::File, io::BufReader};
@@ -31,36 +31,45 @@ fn main() -> Result<()> {
         file2_type: f2_tp,
     } = Cli::parse();
 
-    let f1_tp_default = FileType::try_from(f1.split('.').last().unwrap().to_string()).ok();
-    let f2_tp_default = FileType::try_from(f2.split('.').last().unwrap().to_string()).ok();
+    let f1_tp_default = FileType::try_from(f1.split('.').next_back().unwrap().to_string()).ok();
+    let f2_tp_default = FileType::try_from(f2.split('.').next_back().unwrap().to_string()).ok();
 
     if f1_tp.is_none() && f1_tp_default.is_none() {
-        println!("Типы входных файлов не указаны");
-        return;
+        bail!("Типы входных файлов не указаны");
     } else if f2_tp.is_none() || f2_tp_default.is_none() {
-        println!("Тип выходного файла не указан");
-        return;
+        bail!("Тип выходного файла не указан");
     }
 
-    if file1_type != file1_type_default || file2_type != file2_type_default {
+    if (f1_tp != f1_tp_default) || (f2_tp != f2_tp_default) {
         println!("Типы не соответствуют названию первого и второго файлов");
         println!("Вы точно уверены? Y/N");
-        let mut a = String::new();
-        std::io::stdin().read_line(&mut a).unwrap();
-        let a = a.trim().to_lowercase();
-        if a == "n\n" || a == "n" {
-            return;
+        let mut answ = String::new();
+        std::io::stdin().read_line(&mut answ).unwrap();
+        let answ = answ.trim().to_lowercase();
+        if answ == "n\n" || answ == "n" {
+            return Ok(());
         }
     }
 
-    let mut buf_r: BufReader<File> = BufReader::new(File::open(file1).unwrap());
-    let operations1 = FromFile::operations(&mut buf_r, file1_type).unwrap();
+    let f1_tp = f1_tp.unwrap_or(f1_tp_default.unwrap());
+    let f2_tp = f2_tp.unwrap_or(f2_tp_default.unwrap());
 
-    let mut buf_r: BufReader<File> = BufReader::new(File::open(file2).unwrap());
-    let operations2 = FromFile::operations(&mut buf_r, file2_type).unwrap();
+    let mut buf_r: BufReader<File> = BufReader::new(File::open(f1)?);
+    let operations1 = FromFile::operations(&mut buf_r, f1_tp)?;
+
+    let mut buf_r: BufReader<File> = BufReader::new(File::open(f2)?);
+    let operations2 = FromFile::operations(&mut buf_r, f2_tp)?;
 
     if operations1 != operations2 {
         println!("Файлы не равны");
+    }
+
+    println!("Хотите построчный вывод? Y/N");
+    let mut answ = String::new();
+    std::io::stdin().read_line(&mut answ).unwrap();
+    let answ = answ.trim().to_lowercase();
+    if answ == "n\n" || answ == "n" {
+        return Ok(());
     }
 
     for (op1, op2) in operations1.iter().zip(operations2.iter()) {

@@ -6,7 +6,7 @@ fn main() {
     // Загружаем текущее состояние банка из CSV-файла
     // Здесь демонстрация использования BufRead в методе load_data()
     // Файл читается построчно, и каждая строка преобразуется в (Name, Balance)
-    let mut storage = Storage::load_data("balance.csv").unwrap_or(Storage::new());
+    let mut storage = Storage::load_data("balance.csv").unwrap_or_default();
 
     // Получаем аргументы командной строки
     let args: Vec<String> = env::args().collect();
@@ -32,7 +32,7 @@ fn main() {
             let amount: u64 = args[3].parse().expect("Сумма должна быть числом");
 
             // Пытаемся пополнить баланс
-            match storage.deposit(&name, amount.into()) {
+            match storage.deposit(&name, amount) {
                 Ok(_) => {
                     println!("Пополнено: {} на {}", name, amount);
                     // После изменения баланса сохраняем новое состояние в CSV
@@ -50,7 +50,7 @@ fn main() {
             let amount: u64 = args[3].parse().expect("Сумма должна быть числом");
 
             // Пытаемся снять деньги
-            match storage.withdraw(&name, amount.into()) {
+            match storage.withdraw(&name, amount) {
                 Ok(_) => {
                     println!("Снято: {} на {}", name, amount);
                     // Сохраняем изменения

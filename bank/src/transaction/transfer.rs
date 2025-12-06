@@ -32,8 +32,8 @@ impl Transaction for Transfer {
     }
 }
 
-impl Into<OperationType> for Transfer {
-    fn into(self) -> OperationType {
-        OperationType::Withdraw(self.amount)
+impl From<Transfer> for OperationType {
+    fn from(value: Transfer) -> Self {
+        OperationType::Transfer(value.from, value.amount, false)
     }
 }

@@ -3,7 +3,7 @@ use quote::quote;
 use syn::{DeriveInput, parse_macro_input};
 
 // const REGEX_FILEDS: &'static str = r"INSERT INTO (.*?) \s*\((.*?)\)";
-const REGEX_VALS: &'static str = r"VALUES\s*\((.*?)\)";
+const REGEX_VALS: &str = r"VALUES\s*\((.*?)\)";
 
 /// Реализация макроса `#[derive(FromSql)]`
 pub fn from_sql_derive(input: TokenStream) -> TokenStream {

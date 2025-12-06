@@ -1,6 +1,6 @@
+mod core;
 pub mod files;
 pub mod manager;
-pub mod storage;
 use crate::{Name, balance::Balance};
 use std::collections::HashMap;
 

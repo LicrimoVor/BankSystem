@@ -75,10 +75,10 @@ fn parse_body(body: &[u8]) -> Result<OperationName, ParseFileError> {
     };
 
     let (tx_type, name) = match tx_type {
-        OperationType::Deposit(_) => (OperationType::Deposit(amount.abs() as u64), to_user),
-        OperationType::Withdraw(_) => (OperationType::Withdraw(amount.abs() as u64), from_user),
+        OperationType::Deposit(_) => (OperationType::Deposit(amount.unsigned_abs()), to_user),
+        OperationType::Withdraw(_) => (OperationType::Withdraw(amount.unsigned_abs()), from_user),
         OperationType::Transfer(_, _, _) => (
-            OperationType::Transfer(from_user.to_string(), amount.abs() as u64, true),
+            OperationType::Transfer(from_user.to_string(), amount.unsigned_abs(), true),
             to_user,
         ),
         OperationType::Close => (OperationType::Close, to_user),
@@ -99,20 +99,20 @@ pub(super) fn parse_from_bin<R: std::io::Read>(
             break;
         };
 
-        if str::from_utf8(&buf_magic).expect("REASON").to_string() != "YPBN" {
+        if str::from_utf8(&buf_magic).expect("REASON") != "YPBN" {
             return Err(ParseFileError::SerializeError("магический символ"));
         }
 
         let mut buf_size = [0; 4];
         r.read_exact(&mut buf_size)
-            .or_else(|e| Err(ParseFileError::IoError(e)))?;
+            .map_err(ParseFileError::IoError)?;
         let record_size = u32::from_be_bytes(buf_size);
         if record_size < 46 {
             return Err(ParseFileError::SerializeError("длина записи (min 46)"));
         }
         let mut buf_body = vec![0; record_size as usize];
         r.read_exact(&mut buf_body)
-            .or_else(|e| Err(ParseFileError::IoError(e)))?;
+            .map_err(ParseFileError::IoError)?;
 
         let arr: [u8; 4] = buf_body[42..46].try_into().expect("REASON");
         let desc_size = u32::from_be_bytes(arr);

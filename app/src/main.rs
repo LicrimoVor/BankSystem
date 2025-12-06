@@ -29,7 +29,7 @@ fn main() {
             }
             let name: Name = args[2].clone();
             let amount: u64 = args[3].parse().expect("Сумма должна быть числом");
-            match storage.deposit(&name, amount.into()) {
+            match storage.deposit(&name, amount) {
                 Ok(_) => println!("Пополнено: {} на {}", name, amount),
                 Err(e) => println!("Ошибка: {}", e),
             }
@@ -41,7 +41,7 @@ fn main() {
             }
             let name: Name = args[2].clone();
             let amount: u64 = args[3].parse().expect("Сумма должна быть числом");
-            match storage.withdraw(&name, amount.into()) {
+            match storage.withdraw(&name, amount) {
                 Ok(_) => println!("Снято: {} на {}", name, amount),
                 Err(e) => println!("Ошибка: {}", e),
             }

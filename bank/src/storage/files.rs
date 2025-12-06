@@ -24,32 +24,29 @@ impl Storage {
 
         let file = File::open(file)?;
         let reader = io::BufReader::new(file);
-        for line in reader.lines() {
-            // Каждая строка — это Result<String>, поэтому делаем if let Ok
-            if let Ok(line) = line {
-                // Разделяем строку по запятой: "Name,Balance"
-                let parts: Vec<&str> = line.trim().split(';').collect();
+        for line in reader.lines().map_while(|line| line.ok()) {
+            // Разделяем строку по запятой: "Name,Balance"
+            let parts: Vec<&str> = line.trim().split(';').collect();
 
-                if parts.len() == 2 {
-                    let name = parts[0].to_string();
-                    // Пробуем преобразовать баланс из строки в число
-                    let balance = Balance::try_from(parts[1].to_string()).map_err(|e| {
-                        let message = if let BalanceError::InvalidParseBalance(e) = e {
-                            format!("Неверный формат баланса: {}", e)
-                        } else {
-                            "Неверный формат операций".to_string()
-                        };
-                        std::io::Error::new(std::io::ErrorKind::InvalidData, message)
-                    })?;
+            if parts.len() == 2 {
+                let name = parts[0].to_string();
+                // Пробуем преобразовать баланс из строки в число
+                let balance = Balance::try_from(parts[1].to_string()).map_err(|e| {
+                    let message = if let BalanceError::InvalidParseBalance(e) = e {
+                        format!("Неверный формат баланса: {}", e)
+                    } else {
+                        "Неверный формат операций".to_string()
+                    };
+                    std::io::Error::new(std::io::ErrorKind::InvalidData, message)
+                })?;
 
-                    storage.add_user(name.clone());
-                    storage.set_balance(&name, balance);
-                } else {
-                    return Err(std::io::Error::new(
-                        std::io::ErrorKind::InvalidData,
-                        "Неверный формат строки",
-                    ));
-                }
+                storage.add_user(name.clone());
+                storage.set_balance(&name, balance);
+            } else {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    "Неверный формат строки",
+                ));
             }
         }
 
@@ -106,9 +103,9 @@ Julia;400,[2,1764444530,D600,success,Record number #2|3,1764444535,T(Ivan:200:fa
     #[test]
     fn test_load_data_not_existing_file() {
         let mut file = NamedTempFile::new().unwrap();
-        write!(
+        writeln!(
             file,
-            "Ivan;300,[1,1764444526,O100,success,Record number #1]\n"
+            "Ivan;300,[1,1764444526,O100,success,Record number #1]"
         )
         .unwrap();
         let path = file.path().to_str().unwrap();

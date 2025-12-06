@@ -62,8 +62,7 @@ impl TryFrom<String> for Balance {
         let history = history[1..len_history - 1]
             .split('|')
             .map(|op| {
-                Operation::try_from(op.to_string())
-                    .map_err(|err| BalanceError::InvalidParseOperation(err))
+                Operation::try_from(op.to_string()).map_err(BalanceError::InvalidParseOperation)
             })
             .collect::<Result<Vec<Operation>, BalanceError>>()?;
         Ok(Balance { value, history })

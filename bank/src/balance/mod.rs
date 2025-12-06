@@ -1,9 +1,9 @@
 pub mod analitics;
-mod balance;
+mod core;
 pub mod errors;
 pub mod manager;
 pub mod operations;
 
-pub use balance::Balance;
+pub use core::Balance;
 
 pub type BalanceSize = i128;

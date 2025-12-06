@@ -30,8 +30,8 @@ impl Transaction for Withdraw {
     }
 }
 
-impl Into<OperationType> for Withdraw {
-    fn into(self) -> OperationType {
-        OperationType::Withdraw(self.amount)
+impl From<Withdraw> for OperationType {
+    fn from(val: Withdraw) -> Self {
+        OperationType::Withdraw(val.amount)
     }
 }

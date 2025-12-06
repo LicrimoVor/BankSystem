@@ -40,9 +40,9 @@ impl Debug for OperationType {
     }
 }
 
-impl Into<String> for OperationType {
-    fn into(self) -> String {
-        match self {
+impl From<OperationType> for String {
+    fn from(val: OperationType) -> Self {
+        match val {
             OperationType::Deposit(v) => format!("D{}", v),
             OperationType::Withdraw(v) => format!("W{}", v),
             OperationType::Transfer(n, v, f) => format!("T({}:{}:{})", n, v, f),
@@ -65,11 +65,11 @@ impl TryFrom<String> for OperationType {
         let (op, val) = text.split_at(1);
         let val_len = val.len();
         if let Ok(v) = val.parse::<u64>() {
-            return match op {
+            match op {
                 "D" => Ok(OperationType::Deposit(v)),
                 "W" => Ok(OperationType::Withdraw(v)),
                 _ => Err(OperationError::InvalidOperation(text)),
-            };
+            }
         } else {
             let parts: Vec<&str> = val[1..val_len - 1].splitn(3, ':').collect();
             if let [name, value, flag] = parts.as_slice() {
