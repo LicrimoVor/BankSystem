@@ -1,6 +1,4 @@
-// src/vault.rs
-
-use std::{collections::HashMap, ops::SubAssign};
+use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub struct Item {
