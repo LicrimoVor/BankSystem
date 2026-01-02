@@ -1,10 +1,10 @@
-// src/server.rs
-
+use rand::Rng;
 use std::io::BufRead;
 use std::io::BufReader;
 use std::io::Write;
 use std::net::TcpStream;
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 use crate::vault::{Item, Vault, VaultError};
 
@@ -28,6 +28,8 @@ pub fn handle_client(stream: TcpStream, vault: Arc<Mutex<Vault>>) {
             }
             Ok(_) => {
                 let input = line.trim();
+                println!("input: {}", input);
+
                 if input.is_empty() {
                     let _ = writer.flush();
                     continue;
@@ -77,9 +79,41 @@ pub fn handle_client(stream: TcpStream, vault: Arc<Mutex<Vault>>) {
                         }
                     }
 
+                    Some("Take") => {
+                        let id = parts.next().and_then(|s| s.parse::<u32>().ok());
+                        let name = parts.next();
+
+                        if let (Some(id), Some(name)) = (id, name) {
+                            let mut v = vault.lock().unwrap();
+                            match v.take(id, name) {
+                                Ok(item) => {
+                                    format!("Item name: {}, size: {}", item.name, item.size)
+                                }
+                                Err(VaultError::CellNotFound) => {
+                                    "ERROR: cell not found\n".to_string()
+                                }
+                                Err(VaultError::ItemNotFound) => {
+                                    "ERROR: item in cell not found\n".to_string()
+                                }
+                                _ => "Error: unknow\n".to_string(),
+                            }
+                        } else {
+                            "ERROR: usage TAKE <id> <name>\n".to_string()
+                        }
+                    }
+
                     Some("LIST") => {
                         let v = vault.lock().unwrap();
                         v.list().unwrap_or_else(|| "Vault is empty\n".to_string())
+                    }
+
+                    Some("PING") => {
+                        let mut rng = rand::rng();
+
+                        // Случайная задержка от 1 до 4 секунд
+                        let delay_ms = rng.random_range(50..=4000);
+                        std::thread::sleep(Duration::from_millis(delay_ms));
+                        "PONG\n".to_string()
                     }
 
                     Some("EXIT") => {

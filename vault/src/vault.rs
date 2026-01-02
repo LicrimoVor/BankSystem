@@ -1,6 +1,6 @@
 // src/vault.rs
 
-use std::collections::HashMap;
+use std::{collections::HashMap, ops::SubAssign};
 
 #[derive(Debug, Clone)]
 pub struct Item {
@@ -15,9 +15,11 @@ pub struct Cell {
     pub used_space: u32, // сколько занято
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum CellError {
     Full,
+    OutOfRange,
+    NotFound,
 }
 
 impl Cell {
@@ -55,6 +57,23 @@ impl Cell {
             ))
         }
     }
+
+    pub fn take(&mut self, name: &str) -> Result<Item, CellError> {
+        let index = self.items.iter().position(|x| x.name == name);
+        if let Some(index) = index {
+            let item = self.items.remove(index);
+            let used_space = self.used_space.checked_sub(item.size);
+            if let Some(used_space) = used_space {
+                self.used_space = used_space
+            } else {
+                return Err(CellError::OutOfRange);
+            }
+
+            Ok(item)
+        } else {
+            Err(CellError::NotFound)
+        }
+    }
 }
 
 pub struct Vault {
@@ -67,6 +86,7 @@ pub enum VaultError {
     VaultFull,
     CellFull,
     CellNotFound,
+    ItemNotFound,
 }
 
 impl Vault {
@@ -106,5 +126,103 @@ impl Vault {
             let keys: Vec<String> = self.cells.keys().map(|id| id.to_string()).collect();
             Some(format!("Occupied cells: {}\n", keys.join(", ")))
         }
+    }
+
+    pub fn take(&mut self, id: u32, name: &str) -> Result<Item, VaultError> {
+        if let Some(cell) = self.cells.get_mut(&id) {
+            cell.take(name).map_err(|err| match err {
+                CellError::NotFound => VaultError::ItemNotFound,
+                _ => VaultError::CellNotFound,
+            })
+        } else {
+            Err(VaultError::CellNotFound)
+        }
+    }
+}
+
+// src/vault.rs
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_take_item_from_cell() {
+        let mut cell = Cell {
+            items: vec![
+                Item {
+                    name: "gold".to_string(),
+                    size: 10,
+                },
+                Item {
+                    name: "silver".to_string(),
+                    size: 5,
+                },
+            ],
+            capacity: 100,
+            used_space: 15,
+        };
+
+        // берём предмет, который есть
+        let item = cell.take("gold").expect("should take gold");
+        assert_eq!(item.name, "gold");
+        assert_eq!(item.size, 10);
+        assert_eq!(cell.used_space, 5); // used_space уменьшился
+        assert_eq!(cell.items.len(), 1);
+
+        // берём предмет, который остался
+        let item2 = cell.take("silver").expect("should take silver");
+        assert_eq!(item2.name, "silver");
+        assert_eq!(item2.size, 5);
+        assert_eq!(cell.used_space, 0);
+        assert!(cell.items.is_empty());
+
+        // пытаемся взять несуществующий предмет
+        let res = cell.take("diamond");
+        assert!(matches!(res, Err(CellError::NotFound)));
+    }
+
+    #[test]
+    fn test_take_item_from_vault() {
+        let mut vault = Vault {
+            cells: std::collections::HashMap::new(),
+            capacity: 100,
+        };
+
+        vault.cells.insert(
+            1,
+            Cell {
+                items: vec![
+                    Item {
+                        name: "gold".to_string(),
+                        size: 10,
+                    },
+                    Item {
+                        name: "silver".to_string(),
+                        size: 5,
+                    },
+                ],
+                capacity: 100,
+                used_space: 15,
+            },
+        );
+
+        // забираем существующий предмет
+        let item = vault.take(1, "gold").expect("should take gold");
+        assert_eq!(item.name, "gold");
+        assert_eq!(item.size, 10);
+
+        // забираем второй предмет
+        let item2 = vault.take(1, "silver").expect("should take silver");
+        assert_eq!(item2.name, "silver");
+        assert_eq!(item2.size, 5);
+
+        // пытаемся взять из пустой ячейки
+        let res = vault.take(1, "diamond");
+        assert!(matches!(res, Err(VaultError::ItemNotFound)));
+
+        // пытаемся взять из несуществующей ячейки
+        let res = vault.take(2, "gold");
+        assert!(matches!(res, Err(VaultError::CellNotFound)));
     }
 }
