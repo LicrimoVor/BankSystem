@@ -1,4 +1,5 @@
 use crate::RoomMetrics;
+use crate::{debug, error, info, trace, warn};
 use bincode;
 use std::net::UdpSocket;
 use std::sync::mpsc;
@@ -11,46 +12,8 @@ pub struct MetricsReceiver {
 impl MetricsReceiver {
     pub fn new(bind_addr: &str) -> Result<Self, std::io::Error> {
         let socket = UdpSocket::bind(bind_addr)?;
-        println!("Ресивер запущен на {}", bind_addr);
+        info!("Ресивер запущен на {}", bind_addr);
         Ok(Self { socket })
-    }
-
-    // Старый метод для простого запуска
-    pub fn start_in_thread(self) -> thread::JoinHandle<()> {
-        thread::spawn(move || {
-            if let Err(e) = self.receive_loop() {
-                eprintln!("Ошибка в receive_loop: {}", e);
-            }
-        })
-    }
-
-    // Метод с циклом для получения метрик
-    pub fn receive_loop(self) -> Result<(), Box<dyn std::error::Error>> {
-        let mut buf = [0u8; 1024];
-
-        println!("Ожидание данных...");
-
-        loop {
-            match self.socket.recv_from(&mut buf) {
-                Ok((size, src_addr)) => match bincode::deserialize::<RoomMetrics>(&buf[..size]) {
-                    Ok(metrics) => {
-                        println!(
-                            "[{}] Получено от {}: {:.1}C, {:.1}% влажности",
-                            metrics.formatted_time(),
-                            src_addr,
-                            metrics.temperature,
-                            metrics.humidity
-                        );
-                    }
-                    Err(e) => {
-                        eprintln!("Ошибка десериализации: {}", e);
-                    }
-                },
-                Err(e) => {
-                    eprintln!("Ошибка получения данных: {}", e);
-                }
-            }
-        }
     }
 
     // НОВЫЙ МЕТОД: запускает приём в отдельном потоке и возвращает канал для получения данных
@@ -62,9 +25,11 @@ impl MetricsReceiver {
     ) {
         let (tx, rx) = mpsc::channel();
 
+        info!("Запуск приёмника в отдельном потоке с каналом");
+
         let handle = thread::spawn(move || {
             if let Err(e) = self.receive_loop_with_channel(tx) {
-                eprintln!("Ошибка в receive_loop_with_channel: {}", e);
+                error!("Ошибка в receive_loop_with_channel: {}", e);
             }
         });
 
@@ -78,26 +43,33 @@ impl MetricsReceiver {
     ) -> Result<(), Box<dyn std::error::Error>> {
         let mut buf = [0u8; 1024];
 
-        println!("Канал приёма данных активирован");
+        info!("Канал приёма данных активирован");
 
         loop {
+            debug!("Ожидание данных...");
             match self.socket.recv_from(&mut buf) {
-                Ok((size, src_addr)) => {
-                    match bincode::deserialize::<RoomMetrics>(&buf[..size]) {
-                        Ok(metrics) => {
-                            // Отправляем данные в основной поток
-                            if tx.send((metrics, src_addr)).is_err() {
-                                println!("Канал закрыт, завершение потока приёма");
-                                break;
-                            }
+                Ok((size, src_addr)) => match bincode::deserialize::<RoomMetrics>(&buf[..size]) {
+                    Ok(metrics) => {
+                        debug!("Успешная десериализация #{:?}", metrics);
+
+                        if metrics.door_open {
+                            warn!("🚨 Получены данные с открытой дверью от {}", src_addr);
                         }
-                        Err(e) => {
-                            eprintln!("Ошибка десериализации: {}", e);
+
+                        if tx.send((metrics, src_addr)).is_err() {
+                            error!("Канал закрыт, завершение потока приёма");
+                            break;
                         }
+
+                        trace!("Метрики отправлены в канал");
                     }
-                }
+                    Err(e) => {
+                        error!("Ошибка десериализации: {}", e);
+                        debug!("Сырые данные: {:?}", &buf[..size]);
+                    }
+                },
                 Err(e) => {
-                    eprintln!("Ошибка получения данных: {}", e);
+                    error!("Ошибка получения данных: {}", e);
                 }
             }
         }

@@ -1,4 +1,5 @@
 use crate::RoomMetrics;
+use crate::{debug, error, info, trace, warn};
 use bincode;
 use std::net::UdpSocket;
 use std::thread;
@@ -20,8 +21,13 @@ impl MetricsSender {
         metrics: &RoomMetrics,
         target_addr: &str,
     ) -> Result<(), Box<dyn std::error::Error>> {
+        debug!("Сериализация метрик: {:?}", metrics);
         let encoded = bincode::serialize(metrics)?;
-        self.socket.send_to(&encoded, target_addr)?;
+
+        debug!("Отправка {} байт на {}", encoded.len(), target_addr);
+        let sent_bytes = self.socket.send_to(&encoded, target_addr)?;
+
+        trace!("Успешно отправлено {} байт", sent_bytes);
         Ok(())
     }
 
@@ -31,8 +37,19 @@ impl MetricsSender {
         target_addr: String,
         interval_ms: u64,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        println!(
+        info!(
             "Имитатор датчиков запущен. Отправка на {} каждые {}ms",
+            target_addr, interval_ms
+        );
+
+        #[cfg(feature = "random")]
+        info!("✅ Фича 'random' активна - используется rand для генерации данных");
+
+        #[cfg(not(feature = "random"))]
+        warn!("ℹ️  Фича 'random' отключена - используется детерминистическая генерация");
+
+        info!(
+            "Запуск трансляции метрик на {} каждые {} мс",
             target_addr, interval_ms
         );
 
@@ -41,7 +58,7 @@ impl MetricsSender {
 
             match self.send_to(&metrics, &target_addr) {
                 Ok(()) => {
-                    println!(
+                    info!(
                         "[{}] Отправлено: {:.1}C, {:.1}% влажности, давление: {:.1}hPa, дверь: {}",
                         metrics.formatted_time(),
                         metrics.temperature,
@@ -53,12 +70,25 @@ impl MetricsSender {
                             "закрыта"
                         },
                     );
+
+                    if metrics.door_open {
+                        warn!("🚨 Обнаружена открытая дверь!");
+                    }
+                    if metrics.temperature > 30.0 {
+                        warn!("⚠️  Высокая температура: {:.1}°C", metrics.temperature);
+                    }
+
+                    #[cfg(feature = "sqlite")]
+                    {
+                        debug!("SQL-запрос: {}", metrics.to_sql());
+                    }
                 }
                 Err(e) => {
-                    eprintln!("Ошибка отправки: {}", e);
+                    error!("Ошибка отправки: {}", e);
                 }
             }
 
+            debug!("Ожидание {} мс до следующей отправки", interval_ms);
             thread::sleep(Duration::from_millis(interval_ms));
         }
     }
