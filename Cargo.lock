@@ -315,7 +315,7 @@ checksum = "f52b00d39961fc5b2736ea853c9cc86238e165017a493d1d5c8eac6bdc4cc273"
 
 [[package]]
 name = "monitor"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "bincode",
  "env_logger",
@@ -686,7 +686,7 @@ checksum = "ba73ea9cf16a25df0c8caa16c51acb937d5712a8429db78a3ee29d5dcacd3a65"
 
 [[package]]
 name = "vault"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "rand",
  "socket2",
