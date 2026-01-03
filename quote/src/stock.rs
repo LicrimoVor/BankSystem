@@ -1,6 +1,9 @@
+use bincode::{Decode, Encode};
+use serde::{Deserialize, Serialize};
+
 pub type Ticker = String;
 
-#[derive(Debug, Clone)]
+#[derive(Serialize, Deserialize, Encode, Decode, PartialEq, Debug, Clone)]
 pub struct StockQuote {
     pub ticker: Ticker,
     pub price: f64,
@@ -30,17 +33,26 @@ impl StockQuote {
             None
         }
     }
+}
 
-    // Или бинарная сериализация
-    pub fn to_bytes(&self) -> Vec<u8> {
-        let mut bytes = Vec::new();
-        bytes.extend_from_slice(self.ticker.as_bytes());
-        bytes.push(b'|');
-        bytes.extend_from_slice(self.price.to_string().as_bytes());
-        bytes.push(b'|');
-        bytes.extend_from_slice(self.volume.to_string().as_bytes());
-        bytes.push(b'|');
-        bytes.extend_from_slice(self.timestamp.to_string().as_bytes());
-        bytes
+impl StockQuote {
+    #[cfg(test)]
+    pub fn one() -> Self {
+        Self {
+            ticker: "BCD".to_string(),
+            price: 100.0,
+            volume: 0,
+            timestamp: 123123,
+        }
+    }
+
+    #[cfg(test)]
+    pub fn two() -> Self {
+        Self {
+            ticker: "PEO".to_string(),
+            price: -150.0,
+            volume: 523567,
+            timestamp: 999999,
+        }
     }
 }

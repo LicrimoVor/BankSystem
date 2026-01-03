@@ -1,4 +1,7 @@
-use crate::stock::{StockQuote, Ticker};
+use crate::{
+    message::MessageFormat,
+    stock::{StockQuote, Ticker},
+};
 use log::{info, warn};
 use std::{
     collections::HashMap,
@@ -6,7 +9,8 @@ use std::{
     sync::mpsc::{Receiver, Sender, TryRecvError, channel},
 };
 
-pub enum Event {
+/// Событие для подписчиков
+pub(crate) enum Event {
     /// Обновить данные о акции
     Update(StockQuote),
 
@@ -17,18 +21,26 @@ pub enum Event {
     Disconnect,
 }
 
-pub struct Subscriber {
+/// Подписчик
+pub(crate) struct Subscriber {
     id: u32,
     stocks: Vec<Ticker>,
     receiver: Receiver<Event>,
+    message_format: MessageFormat,
 }
 
 impl Subscriber {
-    fn new(id: u32, stocks: Vec<String>, receiver: Receiver<Event>) -> Self {
+    fn new(
+        id: u32,
+        stocks: Vec<String>,
+        message_format: MessageFormat,
+        receiver: Receiver<Event>,
+    ) -> Self {
         Self {
             id,
             stocks,
             receiver,
+            message_format,
         }
     }
 
@@ -40,7 +52,7 @@ impl Subscriber {
 struct StockSender(Rc<Sender<Event>>, Vec<Ticker>);
 
 /// Уведомляет подписчиков о новых ценах на акции
-pub struct Distributor {
+pub(crate) struct Distributor {
     last_stocks: HashMap<Ticker, StockQuote>,
     subscribers: HashMap<u32, StockSender>,
 
@@ -62,7 +74,7 @@ impl Distributor {
     }
 
     /// Подписаться на отслеживание акции
-    pub fn subscribe(&mut self, stocks: Vec<Ticker>) -> Subscriber {
+    pub fn subscribe(&mut self, stocks: Vec<Ticker>, message_format: MessageFormat) -> Subscriber {
         let id = self.__count;
         self.__count += 1;
 
@@ -82,7 +94,7 @@ impl Distributor {
         self.subscribers
             .insert(id, StockSender(sender, stocks.clone()));
 
-        return Subscriber::new(id, stocks, receiver);
+        return Subscriber::new(id, stocks, message_format, receiver);
     }
 
     /// Отписаться от отслеживания акции
@@ -90,7 +102,8 @@ impl Distributor {
         #[cfg(feature = "logging")]
         info!("Отпика от акций id: {}", id);
 
-        if let Some(StockSender(_, stocks)) = self.subscribers.remove(&id) {
+        if let Some(StockSender(sender, stocks)) = self.subscribers.remove(&id) {
+            let _ = sender.send(Event::Disconnect);
             for stock in stocks {
                 if let Some(sender) = self.stock_senders.get_mut(&stock) {
                     sender.remove(&id);
