@@ -3,4 +3,9 @@ name = "quote"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+default = ["logging"]
+logging = ["dep:log"]
+
 [dependencies]
+log = { version = "0.4", optional = true }
