@@ -43,3 +43,56 @@ pub fn init_logger() {
 pub fn init_logger() {
     // Ничего не делаем, когда логирование отключено
 }
+
+pub trait Logger {
+    fn log(&mut self, message: &str);
+    fn new(formaters: Vec<Box<dyn Fn(String) -> String>>) -> Self
+    where
+        Self: Sized;
+}
+
+pub struct ConsoleLogger {
+    formaters: Vec<Box<dyn Fn(String) -> String>>,
+}
+
+pub struct MemoryLogger {
+    formaters: Vec<Box<dyn Fn(String) -> String>>,
+    messages: Vec<String>,
+}
+
+impl Logger for ConsoleLogger {
+    fn new(formaters: Vec<Box<dyn Fn(String) -> String>>) -> Self
+    where
+        Self: Sized,
+    {
+        Self { formaters }
+    }
+
+    fn log(&mut self, message: &str) {
+        let message = self
+            .formaters
+            .iter()
+            .fold(message.to_string(), |acc, func| func(acc));
+        println!("{}", message);
+    }
+}
+
+impl Logger for MemoryLogger {
+    fn new(formaters: Vec<Box<dyn Fn(String) -> String>>) -> Self
+    where
+        Self: Sized,
+    {
+        Self {
+            formaters,
+            messages: vec![],
+        }
+    }
+
+    fn log(&mut self, message: &str) {
+        let message = self
+            .formaters
+            .iter()
+            .fold(message.to_string(), |acc, func| func(acc));
+        self.messages.push(message);
+    }
+}

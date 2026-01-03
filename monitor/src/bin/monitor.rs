@@ -1,4 +1,8 @@
-use monitor::MetricsReceiver;
+use monitor::{
+    MetricsReceiver,
+    logging::Logger,
+    receiver::{MockReceiver, Receiver},
+};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let bind_addr = "127.0.0.1:8080";
@@ -7,7 +11,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Прослушивание адреса: {}", bind_addr);
     println!("──────────────────────────────────────────────────");
 
-    let receiver = MetricsReceiver::new(bind_addr)?;
+    // let receiver = MetricsReceiver::new(bind_addr)?;
+    let receiver: Box<dyn Receiver> = if std::env::var("USE_MOCK").is_ok() {
+        Box::new(MockReceiver)
+    } else {
+        Box::new(MetricsReceiver::new(bind_addr)?)
+    };
+    let mut loggers: Vec<Box<dyn Logger>> = vec![];
     let (receiver_handle, metrics_rx) = receiver.start_with_channel();
 
     println!("Система мониторинга запущена. Ожидание данных...");

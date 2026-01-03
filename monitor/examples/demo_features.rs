@@ -1,13 +1,29 @@
-use monitor::{RoomMetrics, debug, info, init_logger, warn};
+use monitor::{
+    RoomMetrics, debug, info,
+    logging::{ConsoleLogger, Logger, MemoryLogger, init_logger},
+    warn,
+};
 
 fn main() {
     // Инициализируем логирование, если фича включена
     init_logger();
+    let mut loggers: Vec<Box<dyn Logger>> = vec![
+        Box::new(MemoryLogger::new(vec![])),
+        Box::new(ConsoleLogger::new(vec![])),
+        Box::new(ConsoleLogger::new(vec![Box::new(|m: String| {
+            m.to_uppercase()
+        })])),
+    ];
+    let mut log = |m| {
+        for logger in loggers.iter_mut() {
+            logger.log(m);
+        }
+    };
 
     println!("Демонстрация всех features");
     println!("=============================");
 
-    info!("Начало демонстрации фич");
+    log("Начало демонстрации фич");
 
     // Генерируем тестовые метрики
     debug!("Генерация тестовых метрик");
@@ -35,25 +51,25 @@ fn main() {
     }
 
     // Показываем, какие фичи активны
-    info!("Активные фичи:");
+    log("Активные фичи:");
 
     #[cfg(feature = "random")]
-    println!("Фича 'random' активна");
+    log("Фича 'random' активна");
 
     #[cfg(feature = "sqlite")]
-    println!("Фича 'sqlite' активна");
+    log("Фича 'sqlite' активна");
 
     #[cfg(feature = "logging")]
-    println!("Фича 'logging' активна");
+    log("Фича 'logging' активна");
 
     #[cfg(not(feature = "random"))]
-    println!("Фича 'random' отключена");
+    log("Фича 'random' отключена");
 
     #[cfg(not(feature = "sqlite"))]
-    println!("Фича 'sqlite' отключена");
+    log("Фича 'sqlite' отключена");
 
     #[cfg(not(feature = "logging"))]
-    println!("Фича 'logging' отключена");
+    log("Фича 'logging' отключена");
 
     // Демонстрация фичи sqlite
     #[cfg(feature = "sqlite")]

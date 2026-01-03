@@ -77,3 +77,61 @@ impl MetricsReceiver {
         Ok(())
     }
 }
+
+use std::net::SocketAddr;
+
+pub trait Receiver: Send + Sync {
+    fn start_with_channel(
+        self: Box<Self>,
+    ) -> (
+        thread::JoinHandle<()>,
+        mpsc::Receiver<(RoomMetrics, SocketAddr)>,
+    );
+}
+
+impl Receiver for MetricsReceiver {
+    fn start_with_channel(
+        self: Box<Self>,
+    ) -> (
+        thread::JoinHandle<()>,
+        mpsc::Receiver<(RoomMetrics, std::net::SocketAddr)>,
+    ) {
+        MetricsReceiver::start_with_channel(*self)
+    }
+}
+
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
+
+pub struct MockReceiver;
+
+impl Receiver for MockReceiver {
+    fn start_with_channel(
+        self: Box<Self>,
+    ) -> (
+        thread::JoinHandle<()>,
+        mpsc::Receiver<(RoomMetrics, std::net::SocketAddr)>,
+    ) {
+        let (tx, rx) = mpsc::channel();
+
+        let handle = thread::spawn(move || {
+            for i in 0..5 {
+                let metrics = RoomMetrics {
+                    temperature: 22.5 + i as f32,
+                    humidity: 45.0,
+                    pressure: 1013.0,
+                    door_open: i % 2 == 0,
+                    noise_level: 0.0,
+                    timestamp: SystemTime::now()
+                        .duration_since(UNIX_EPOCH)
+                        .unwrap()
+                        .as_secs(),
+                };
+                tx.send((metrics, "127.0.0.1:9999".parse().unwrap()))
+                    .unwrap();
+                thread::sleep(Duration::from_secs(1));
+            }
+        });
+
+        (handle, rx)
+    }
+}
