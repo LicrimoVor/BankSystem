@@ -24,7 +24,7 @@ pub(crate) enum Event {
 /// Подписчик
 pub(crate) struct Subscriber {
     id: u32,
-    stocks: Vec<Ticker>,
+    tickers: Vec<Ticker>,
     receiver: Receiver<Event>,
     message_format: MessageFormat,
 }
@@ -32,13 +32,13 @@ pub(crate) struct Subscriber {
 impl Subscriber {
     fn new(
         id: u32,
-        stocks: Vec<String>,
+        tickers: Vec<String>,
         message_format: MessageFormat,
         receiver: Receiver<Event>,
     ) -> Self {
         Self {
             id,
-            stocks,
+            tickers,
             receiver,
             message_format,
         }
@@ -49,52 +49,56 @@ impl Subscriber {
     }
 }
 
-struct StockSender(Rc<Sender<Event>>, Vec<Ticker>);
+struct SenderTicker(Rc<Sender<Event>>, Vec<Ticker>);
 
 /// Уведомляет подписчиков о новых ценах на акции
 pub(crate) struct Distributor {
     last_stocks: HashMap<Ticker, StockQuote>,
-    subscribers: HashMap<u32, StockSender>,
+    subscribers: HashMap<u32, SenderTicker>,
 
-    stock_senders: HashMap<Ticker, HashMap<u32, Rc<Sender<Event>>>>,
+    ticker_senders: HashMap<Ticker, HashMap<u32, Rc<Sender<Event>>>>,
 
     /// Счетчик подписок (служит для генерации id)
     __count: u32,
 }
 
 impl Distributor {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             last_stocks: HashMap::new(),
             subscribers: HashMap::new(),
 
-            stock_senders: HashMap::new(),
+            ticker_senders: HashMap::new(),
             __count: 0,
         }
     }
 
     /// Подписаться на отслеживание акции
-    pub fn subscribe(&mut self, stocks: Vec<Ticker>, message_format: MessageFormat) -> Subscriber {
+    pub fn subscribe(
+        &mut self,
+        tickers: Vec<Ticker>,
+        message_format: MessageFormat,
+    ) -> (u32, Subscriber) {
         let id = self.__count;
         self.__count += 1;
 
         #[cfg(feature = "logging")]
-        info!("Подписка на акции {:?}. id: {}", stocks, id);
+        info!("Подписка на акции {:?}. id: {}", tickers, id);
 
         let (sender, receiver) = channel();
         let sender = Rc::new(sender);
 
-        for stock in &stocks {
-            self.stock_senders
-                .entry(stock.clone())
+        for ticker in &tickers {
+            self.ticker_senders
+                .entry(ticker.clone())
                 .or_default()
                 .insert(id, sender.clone());
         }
 
         self.subscribers
-            .insert(id, StockSender(sender, stocks.clone()));
+            .insert(id, SenderTicker(sender, tickers.clone()));
 
-        return Subscriber::new(id, stocks, message_format, receiver);
+        return (id, Subscriber::new(id, tickers, message_format, receiver));
     }
 
     /// Отписаться от отслеживания акции
@@ -102,10 +106,10 @@ impl Distributor {
         #[cfg(feature = "logging")]
         info!("Отпика от акций id: {}", id);
 
-        if let Some(StockSender(sender, stocks)) = self.subscribers.remove(&id) {
+        if let Some(SenderTicker(sender, stocks)) = self.subscribers.remove(&id) {
             let _ = sender.send(Event::Disconnect);
             for stock in stocks {
-                if let Some(sender) = self.stock_senders.get_mut(&stock) {
+                if let Some(sender) = self.ticker_senders.get_mut(&stock) {
                     sender.remove(&id);
                 }
             }
@@ -119,21 +123,31 @@ impl Distributor {
 
         self.last_stocks.insert(stock.ticker.clone(), stock.clone());
 
-        if let Some(senders) = self.stock_senders.get(&stock.ticker) {
+        if let Some(senders) = self.ticker_senders.get(&stock.ticker) {
             for (_, sender) in senders.iter() {
                 let _ = sender.send(Event::Update(stock.clone()));
             }
         }
     }
 
+    /// Удалить акцию
+    pub fn remove_stock(&mut self, ticker: Ticker) {
+        self.last_stocks.remove(&ticker);
+        self.ticker_senders.remove(&ticker);
+    }
+
     /// Получить последние данные о акциях
-    pub fn get_last_stocks(&self, stocks: Vec<Ticker>) -> Vec<StockQuote> {
+    pub fn get_last_stocks(&self, stocks: &Vec<Ticker>) -> Vec<StockQuote> {
         let mut result = Vec::new();
         for stock in stocks {
-            if let Some(last_stock) = self.last_stocks.get(&stock) {
+            if let Some(last_stock) = self.last_stocks.get(stock) {
                 result.push(last_stock.clone());
             }
         }
         result
+    }
+
+    pub fn get_tickers(&self) -> Vec<Ticker> {
+        self.ticker_senders.keys().cloned().collect()
     }
 }
