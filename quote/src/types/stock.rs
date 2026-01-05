@@ -35,8 +35,8 @@ impl StockQuote {
     }
 }
 
+#[cfg(test)]
 impl StockQuote {
-    #[cfg(test)]
     pub fn one() -> Self {
         Self {
             ticker: "BCD".to_string(),
@@ -46,7 +46,6 @@ impl StockQuote {
         }
     }
 
-    #[cfg(test)]
     pub fn two() -> Self {
         Self {
             ticker: "PEO".to_string(),

@@ -1,115 +1,88 @@
 use crate::{
     distributor::Distributor,
-    message::MessageFormat,
-    stock::{StockQuote, Ticker},
-    worker::ActorWorker,
+    types::{
+        command::Command,
+        message::MessageFormat,
+        stock::{StockQuote, Ticker},
+    },
+    worker::SubscribeWorker,
 };
+use log::{info, warn};
 use std::{
     collections::HashMap,
-    io::{self, Error, Read},
-    net::{SocketAddr, TcpListener, TcpStream},
-    str::FromStr,
+    io::{self, Read, Write},
+    net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener, TcpStream},
     sync::mpsc::Receiver,
-    thread::JoinHandle,
+    thread,
+    time::Duration,
 };
 
-/// Команды для общения с tcp-мастером
-#[derive(Debug, PartialEq)]
-enum Command {
-    /// STREAM <ip>:<port> <ticker,ticker...>
-    /// создать поток
-    Stream((SocketAddr, Vec<Ticker>)),
+/// Тип соединения: адрес, id подписчика, поток
+struct Connection(SocketAddr, u32, thread::JoinHandle<Result<(), String>>);
 
-    /// STOP <ip>:<port>
-    /// остановить поток
-    Stop(SocketAddr),
-
-    /// LIST
-    /// список подключений
-    List,
-
-    /// DISCONNECT
-    /// отключиться (завершив все потоки)
-    Disconnect,
-
-    /// TICKERS
-    /// список тикеров
-    Tickers,
-
-    /// HELP
-    /// выводит список команд
-    Help,
+/// Конфиг мастера
+pub struct MasterConfig {
+    secret_key: Vec<u8>,
+    tcp_addr: SocketAddr,
 }
 
-impl Command {
-    pub fn parse(s: &str) -> Result<Self, &str> {
-        match s[0..4].to_uppercase().as_str() {
-            "STRE" => {
-                let parts: Vec<&str> = s.split(' ').collect();
-                if parts.len() != 3 {
-                    return Err(
-                        "Неправильная команда стрима\nSTREAM <ip>:<port> <ticker,ticker...>",
-                    );
-                }
-                let tickers: Vec<Ticker> = parts[2]
-                    .split(',')
-                    .collect::<Vec<&str>>()
-                    .into_iter()
-                    .map(|s| s.to_string())
-                    .collect();
-                let Ok(addr) = SocketAddr::from_str(parts[1]) else {
-                    return Err(
-                        "Неправильная команда стрима\nSTREAM <ip>:<port> <ticker,ticker...>",
-                    );
-                };
+impl Default for MasterConfig {
+    fn default() -> Self {
+        let secret_key = rand::random_iter()
+            .take(32)
+            .map(|a: u8| 32 + a / 4)
+            .collect::<Vec<u8>>();
+        if let Ok(w) = String::from_utf8(secret_key.clone()) {
+            println!("Secret key: {}", w);
+        } else {
+            println!("Secret key (bytes): {:?}", secret_key);
+        }
 
-                Ok(Command::Stream((addr, tickers)))
-            }
-            "STOP" => {
-                let parts: Vec<&str> = s.split(' ').collect();
-                if parts.len() != 2 {
-                    return Err("Неправильная команда стоп\nSTOP <ip>:<port>");
-                }
-                let Ok(addr) = SocketAddr::from_str(parts[1]) else {
-                    return Err("Неправильная команда стоп\nSTOP <ip>:<port>");
-                };
-                Ok(Command::Stop(addr))
-            }
-            "LIST" => Ok(Command::Disconnect),
-            "DISC" => Ok(Command::Disconnect),
-            "TICK" => Ok(Command::Tickers),
-            "HELP" => Ok(Command::Help),
-            _ => Err("Неизсветная команда. Отправьте HELP"),
+        Self {
+            secret_key,
+            tcp_addr: SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 7878),
         }
     }
 }
 
-/// Тип соединения: адрес, id подписчика, поток
-struct Connection(SocketAddr, u32, JoinHandle<Result<(), Error>>);
 /// Мастер сервера потоков
-struct Master {
+pub struct Master {
     connections: HashMap<SocketAddr, Vec<Connection>>,
     distributor: Distributor,
     rx_stock: Receiver<StockQuote>,
+
+    shutdown: bool,
+    config: MasterConfig,
 }
 
 impl Master {
-    pub fn new(rx_stock: Receiver<StockQuote>) -> Self {
+    pub fn new(rx_stock: Receiver<StockQuote>, config: Option<MasterConfig>) -> Self {
         Self {
             connections: HashMap::new(),
             distributor: Distributor::new(),
             rx_stock,
+
+            shutdown: false,
+            config: config.unwrap_or_default(),
         }
     }
 
+    /// Запуск мастера (можно в отдельном потоке)
     pub fn run(mut self) -> Result<Self, String> {
-        let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
+        let listener = TcpListener::bind(self.config.tcp_addr).unwrap();
         listener.set_nonblocking(true).unwrap();
         loop {
+            if self.shutdown {
+                break;
+            }
+
             for stream in listener.incoming() {
                 match stream {
                     Ok(stream) => {
-                        self.tcp_handle(stream).unwrap();
+                        if let Err(e) = self.tcp_handle(stream) {
+                            #[cfg(feature = "logging")]
+                            warn!("{}", e);
+                        };
                     }
                     Err(e) if e.kind() == io::ErrorKind::WouldBlock => {
                         continue;
@@ -123,29 +96,87 @@ impl Master {
             if let Ok(stock) = self.rx_stock.try_recv() {
                 self.distributor.send_all(stock);
             }
+            thread::sleep(Duration::from_micros(100));
         }
+
+        let domens: Vec<SocketAddr> = self.connections.keys().cloned().collect();
+        let mut threads = Vec::new();
+
+        for domen in domens {
+            let Some(connections) = self.connections.remove(&domen) else {
+                continue;
+            };
+            for Connection(_, id, thread) in connections {
+                self.distributor.unsubscribe(id);
+                threads.push((id, thread));
+            }
+        }
+
+        for (id, thread) in threads {
+            match thread.join() {
+                Ok(Ok(())) => {
+                    #[cfg(feature = "logging")]
+                    info!("Поток {} успешно завершился", id);
+                }
+                Ok(Err(e)) => {
+                    #[cfg(feature = "logging")]
+                    warn!("Поток {} завершился с ошибкой: {}", id, e);
+                }
+                Err(e) => {
+                    #[cfg(feature = "logging")]
+                    warn!("Поток {} запаниковал - {:#?}", id, e);
+                }
+            }
+        }
+
         Ok(self)
     }
 
     fn tcp_handle(&mut self, mut stream: TcpStream) -> Result<(), String> {
+        stream.set_nonblocking(true).unwrap();
         let mut buf = String::new();
         let Ok(domen) = stream.peer_addr() else {
             return Err("Connection failed".to_string());
         };
-        match stream.read_to_string(&mut buf) {
-            Ok(_) => {
-                println!("{}", buf);
-                Ok(())
-            }
-            Err(e) => Err(e.to_string()),
-        }
+        let res: Result<String, &str> = match stream.read_to_string(&mut buf) {
+            Ok(_) => match Command::parse(buf.as_str()) {
+                Ok(command) => match command {
+                    Command::Stream((socket, tickers)) => {
+                        self.command_stream(domen, (socket, tickers))
+                    }
+                    Command::Stop(socket) => self.command_stop(domen, socket),
+                    Command::Disconnect => Ok(self.command_disconnect(domen)),
+                    Command::List => Ok(self.command_list(domen)),
+                    Command::Tickers => Ok(self.command_tickers()),
+                    Command::Help => Ok(Self::command_help()),
+                    Command::Shutdown(key) => self.command_shutdown(key),
+                },
+                Err(e) => {
+                    return Err(e.to_string());
+                }
+            },
+            Err(e) => Err(&e.to_string()),
+        };
+
+        let answer = match res {
+            Ok(res) => res,
+            Err(e) => e.to_string(),
+        };
+
+        if let Err(e) = stream.write_all(answer.as_bytes()) {
+            return Err(e.to_string());
+        };
+
+        Ok(())
     }
+
+    // --- обработка команд с tcp ---
 
     fn command_stream(
         &mut self,
         domen: SocketAddr,
         (socket, tickers): (SocketAddr, Vec<Ticker>),
-    ) -> Result<(), &str> {
+    ) -> Result<String, &str> {
         if let Some(connections) = self.connections.get_mut(&domen) {
             if let Some(indx) = connections.iter().position(|c| c.0 == socket) {
                 if connections[indx].2.is_finished() {
@@ -159,7 +190,7 @@ impl Master {
 
         // пока формат захардкожен для соблюдения ТЗ, но если надо будет, то можно будет передавать через команду)
         let (id, subscriber) = self.distributor.subscribe(tickers, MessageFormat::Json);
-        let Ok(worker) = ActorWorker::new(subscriber, socket) else {
+        let Ok(worker) = SubscribeWorker::new(subscriber, socket) else {
             return Err("Не удалось создать поток");
         };
 
@@ -168,10 +199,10 @@ impl Master {
             .entry(socket)
             .or_default()
             .push(Connection(socket, id, handle));
-        Ok(())
+        Ok("Запущен".to_string())
     }
 
-    fn command_stop(&mut self, domen: SocketAddr, socket: SocketAddr) -> Result<(), &str> {
+    fn command_stop(&mut self, domen: SocketAddr, socket: SocketAddr) -> Result<String, &str> {
         let Some(connections) = self.connections.get_mut(&domen) else {
             return Err("Поток не запущен");
         };
@@ -184,7 +215,7 @@ impl Master {
         // Вопрос такой, правильно ли так делать?)
         // по факту это может затормозить tcp-поток...
         // handle.join();
-        Ok(())
+        Ok("Остановлен".to_string())
     }
 
     fn command_list(&self, domen: SocketAddr) -> String {
@@ -198,23 +229,22 @@ impl Master {
         res
     }
 
-    fn command_disconnect(&mut self, domen: SocketAddr) {
+    fn command_disconnect(&mut self, domen: SocketAddr) -> String {
         let Some(connections) = self.connections.remove(&domen) else {
-            return;
+            return "Отключено".to_string();
         };
         for Connection(_, id, handle) in connections {
             self.distributor.unsubscribe(id);
-            // Вопрос такой, правильно ли так делать?)
-            // по факту это может затормозить tcp-поток...
-            // handle.join();
         }
+
+        return "Отключено".to_string();
     }
 
     fn command_tickers(&self) -> String {
         self.distributor.get_tickers().join("\n")
     }
 
-    fn command_help() -> &'static str {
+    fn command_help() -> String {
         "
 Комманды:
 stream <ip>:<port> <ticker,ticker...> - создать поток
@@ -223,5 +253,14 @@ list - список подключений
 disconnect - отключиться (завершив все потоки)
 tickers - список тикеров
 help - список комманд"
+            .to_string()
+    }
+
+    fn command_shutdown(&mut self, key: String) -> Result<String, &str> {
+        if key == String::from_utf8(self.config.secret_key.clone()).unwrap() {
+            self.shutdown = true;
+            return Ok("Успешно завершено".to_string());
+        }
+        Err("Неверный ключ")
     }
 }

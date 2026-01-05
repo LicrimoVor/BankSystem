@@ -1,0 +1,229 @@
+use log::info;
+#[cfg(feature = "logging")]
+use log::warn;
+
+use crate::types::{
+    command::Command,
+    message::{Message, MessageFormat},
+    stock::Ticker,
+};
+use std::{
+    collections::HashMap,
+    io::{self, Write},
+    net::{SocketAddr, TcpStream, UdpSocket},
+    sync::{
+        Arc, RwLock,
+        mpsc::{Receiver, Sender},
+    },
+};
+
+const READ_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(5);
+const COUNT_RECONNECT: u8 = 10;
+const COUNT_TIMEOUT: u8 = 5;
+
+pub struct RecieverQuote {
+    addr: SocketAddr,
+
+    socket: UdpSocket,
+    format: MessageFormat,
+    tickers: Vec<Ticker>,
+    sender: Sender<Message>,
+
+    count_reconnect: u8,
+    count_timeout: u8,
+    latency: u128,
+    time_instant: Option<std::time::Instant>,
+
+    shutdown: Arc<RwLock<bool>>,
+}
+
+impl RecieverQuote {
+    pub fn new(
+        tickers: Vec<Ticker>,
+        addr: SocketAddr,
+        format: Option<MessageFormat>,
+        shutdown: Arc<RwLock<bool>>,
+    ) -> Result<(Self, Receiver<Message>), String> {
+        let Ok(socket) = UdpSocket::bind(addr) else {
+            #[cfg(feature = "logging")]
+            warn!("Не удалось создать сокет");
+            return Err("Не удалось создать сокет".to_string());
+        };
+        if let Err(e) = socket.set_read_timeout(Some(READ_TIMEOUT)) {
+            #[cfg(feature = "logging")]
+            warn!("{}", e);
+        };
+
+        if let Err(e) = socket.set_nonblocking(true) {
+            #[cfg(feature = "logging")]
+            warn!("{}", e);
+        };
+
+        let (sender, receiver) = std::sync::mpsc::channel();
+
+        Ok((
+            Self {
+                addr,
+
+                socket,
+                format: format.unwrap_or(MessageFormat::Json),
+                tickers,
+                sender,
+
+                count_reconnect: 0,
+                count_timeout: 0,
+                latency: 1000,
+                time_instant: None,
+
+                shutdown,
+            },
+            receiver,
+        ))
+    }
+
+    pub fn run(mut self) -> Result<(Self), String> {
+        let mut buf = [0u8; 1024];
+
+        loop {
+            let Ok(shutdown) = self.shutdown.read().map(|s| *s) else {
+                #[cfg(feature = "logging")]
+                warn!("Не удалось получить shutdown");
+                continue;
+            };
+
+            if shutdown {
+                self.message_handle(Message::Disconnect);
+                break Ok(self);
+            }
+
+            match self.socket.recv(&mut buf) {
+                Ok(n) => match Message::from_format(&buf[..n], &self.format) {
+                    Ok(msg) => match msg {
+                        Message::Ping => {
+                            #[cfg(feature = "logging")]
+                            warn!("Ping не ожидался");
+                        }
+                        Message::Pong => {
+                            self.count_reconnect = 0;
+                            self.count_timeout = 0;
+                            if let Some(instant) = self.time_instant {
+                                self.latency = instant.elapsed().as_millis();
+                            }
+                            #[cfg(feature = "logging")]
+                            info!("Latency: {}", self.latency);
+                        }
+                        Message::Disconnect => {
+                            self.message_handle(msg);
+                            break Ok(self);
+                        }
+                        _ => self.message_handle(msg),
+                    },
+                    Err(e) => {
+                        #[cfg(feature = "logging")]
+                        warn!("{}", e);
+                    }
+                },
+                Err(e)
+                    if e.kind() == std::io::ErrorKind::WouldBlock
+                        || e.kind() == io::ErrorKind::TimedOut =>
+                {
+                    self.keepalive();
+                    self.count_timeout += 1;
+                    if self.count_timeout >= COUNT_TIMEOUT {
+                        self.reconnect();
+                        #[cfg(feature = "logging")]
+                        warn!("Reconnect");
+                    }
+                }
+                Err(e) => {
+                    self.reconnect();
+                    self.keepalive();
+                    #[cfg(feature = "logging")]
+                    warn!("{}", e);
+                }
+            }
+
+            if self.count_reconnect >= COUNT_RECONNECT {
+                break Err("Reconnect failed".to_string());
+            }
+        }
+    }
+
+    fn reconnect(&mut self) {
+        self.count_reconnect += 1;
+        self.socket = match UdpSocket::bind(self.addr) {
+            Ok(s) => s,
+            Err(e) => {
+                #[cfg(feature = "logging")]
+                warn!("{}", e);
+                return;
+            }
+        };
+    }
+
+    fn message_handle(&mut self, message: Message) {
+        self.count_reconnect = 0;
+        self.count_timeout = 0;
+
+        if let Err(e) = self.sender.send(message) {
+            #[cfg(feature = "logging")]
+            warn!("{}", e);
+        }
+    }
+
+    fn keepalive(&mut self) {
+        self.time_instant = Some(std::time::Instant::now());
+
+        if let Ok(ping) = Message::Ping.to_bin() {
+            if let Err(e) = self.socket.send(&ping) {
+                #[cfg(feature = "logging")]
+                warn!("{}", e);
+            };
+        };
+    }
+}
+
+pub struct ClientQuote {
+    recievers: HashMap<u32, (RecieverQuote, Arc<RwLock<bool>>)>,
+    socket: TcpStream,
+
+    count: u32,
+}
+
+impl ClientQuote {
+    pub fn new(socket: SocketAddr) -> Result<Self, String> {
+        let socket = TcpStream::connect(socket).map_err(|e| e.to_string())?;
+        socket.set_nodelay(true).map_err(|e| e.to_string())?;
+
+        Ok(Self {
+            recievers: HashMap::new(),
+            socket,
+
+            count: 0,
+        })
+    }
+
+    pub fn create_reciever(
+        &mut self,
+        tickers: Vec<Ticker>,
+        addr: SocketAddr,
+    ) -> Result<Receiver<Message>, String> {
+        let command = Command::Stream((addr, tickers.clone()))
+            .to_string()
+            .as_bytes();
+        self.socket.write(command).map_err(|e| e.to_string())?;
+
+        let id = self.count;
+        self.count += 1;
+        let shutdown = Arc::new(RwLock::new(false));
+        let (reciever_quote, receiver) = RecieverQuote::new(tickers, addr, None, shutdown.clone())?;
+        self.recievers.insert(id, (reciever_quote, shutdown));
+        Ok(receiver)
+    }
+
+    pub fn stop_reciever(&self) {}
+
+    pub fn stop_all_recievers(&self) {}
+
+    pub fn get_tickers(&self) {}
+}

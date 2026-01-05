@@ -1,4 +1,4 @@
-use crate::stock::{StockQuote, Ticker};
+use super::stock::{StockQuote, Ticker};
 use bincode::error::EncodeError;
 use serde::{Deserialize, Serialize};
 
@@ -9,6 +9,7 @@ pub enum Message {
     Stock(StockQuote),
     Close(Ticker),
     Pong,
+    Ping,
     Disconnect,
 }
 
@@ -54,6 +55,7 @@ impl Message {
                 Ok(mess)
             }
             Message::Pong => Ok("PONG".as_bytes().to_vec()),
+            Message::Ping => Ok("PING".as_bytes().to_vec()),
             Message::Disconnect => Ok("DISC".as_bytes().to_vec()),
         }
     }
@@ -79,12 +81,21 @@ impl Message {
             Message::Stock(stock) => stock.to_string(),
             Message::Close(ticker) => format!("CLOSE STOCK: {}", ticker),
             Message::Pong => "PONG".to_string(),
+            Message::Ping => "Ping".to_string(),
             Message::Disconnect => "DISCONNECT".to_string(),
         }
     }
 }
 
 impl Message {
+    pub fn from_format(data: &[u8], format: &MessageFormat) -> Result<Message, EncodeError> {
+        match format {
+            MessageFormat::Bin => Message::from_bin(data),
+            MessageFormat::Json => Message::from_json(data),
+            MessageFormat::Text => Message::from_string(data),
+        }
+    }
+
     pub fn from_json(data: &[u8]) -> Result<Message, EncodeError> {
         let Ok(mes) = serde_json::from_slice(data) else {
             return Err(EncodeError::Other("Ошибка кодирования"));
@@ -112,6 +123,7 @@ impl Message {
             }
             "CLOS" => Ok(Message::Close(data[13..].to_string())),
             "PONG" => Ok(Message::Pong),
+            "PING" => Ok(Message::Ping),
             "DISC" => Ok(Message::Disconnect),
             _ => StockQuote::from_string(&data)
                 .ok_or(EncodeError::Other("Ошибка кодирования"))
@@ -143,6 +155,7 @@ impl Message {
                 String::from_utf8(data[4..].to_vec()).unwrap(),
             )),
             "PONG" => Ok(Message::Pong),
+            "PING" => Ok(Message::Ping),
             "DISC" => Ok(Message::Disconnect),
             _ => Err(EncodeError::Other("Неизвестный тип сообщения")),
         }

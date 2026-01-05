@@ -5,10 +5,12 @@ edition = "2024"
 
 [features]
 default = ["logging"]
-logging = ["dep:log"]
+logging = ["dep:log", "dep:env_logger"]
 
 [dependencies]
 log = { version = "0.4", optional = true }
 bincode = { version = "2.0", features = ["serde"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0" }
+rand = "0.9"
+env_logger = { version = "0.11", optional = true }

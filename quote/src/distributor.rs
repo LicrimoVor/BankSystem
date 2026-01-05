@@ -1,8 +1,8 @@
 use crate::{
-    message::MessageFormat,
-    stock::{StockQuote, Ticker},
+    types::message::MessageFormat,
+    types::stock::{StockQuote, Ticker},
 };
-use log::{info, warn};
+use log::info;
 use std::{
     collections::HashMap,
     rc::Rc,
@@ -49,6 +49,7 @@ impl Subscriber {
     }
 }
 
+/// Данные о подписчике - какнал отправки, список акций
 struct SenderTicker(Rc<Sender<Event>>, Vec<Ticker>);
 
 /// Уведомляет подписчиков о новых ценах на акции
