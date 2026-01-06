@@ -35,6 +35,7 @@ pub enum Command {
 
 impl Command {
     pub fn parse(s: &str) -> Result<Self, &str> {
+        let s = s.trim();
         match s[0..4].to_uppercase().as_str() {
             "STRE" => {
                 let parts: Vec<&str> = s.split(' ').collect();
@@ -83,13 +84,13 @@ impl Command {
 
     pub fn to_string(&self) -> String {
         match self {
-            Command::Stream((addr, tickers)) => format!("STREAM {} {}", addr, tickers.join(",")),
-            Command::Stop(addr) => format!("STOP {}", addr),
-            Command::Disconnect => "DISCONNECT".to_string(),
-            Command::List => "LIST".to_string(),
-            Command::Tickers => "TICKERS".to_string(),
-            Command::Help => "HELP".to_string(),
-            Command::Shutdown(key) => format!("SHUTDOWN {}", key),
+            Command::Stream((addr, tickers)) => format!("STREAM {} {}\n", addr, tickers.join(",")),
+            Command::Stop(addr) => format!("STOP {}\n", addr),
+            Command::Disconnect => "DISCONNECT\n".to_string(),
+            Command::List => "LIST\n".to_string(),
+            Command::Tickers => "TICKERS\n".to_string(),
+            Command::Help => "HELP\n".to_string(),
+            Command::Shutdown(key) => format!("SHUTDOWN {}\n", key),
         }
     }
 }
@@ -99,8 +100,20 @@ mod test {
     use super::*;
 
     #[test]
-    fn test_command() {
-        let str_command = "STREAM 127.0.0.1:8080 BTC,ETH";
+    fn test_command_stream_parse() {
+        let str_command = "STREAM 127.0.0.1:7879 T1,T9\n";
+        let command_parsed = Command::parse(str_command);
+        assert!(command_parsed.is_ok());
+        let parsed_command = Command::Stream((
+            "127.0.0.1:7879".parse().unwrap(),
+            vec!["T1".to_string(), "T9".to_string()],
+        ));
+        assert_eq!(parsed_command, command_parsed.unwrap());
+    }
+
+    #[test]
+    fn test_command_stream() {
+        let str_command = "STREAM 127.0.0.1:8080 BTC,ETH\n";
         let command_parsed = Command::parse(str_command);
         assert!(command_parsed.is_ok());
         let command_str = command_parsed.unwrap().to_string();
@@ -109,7 +122,7 @@ mod test {
 
     #[test]
     fn test_command_stop() {
-        let str_command = "STOP 127.0.0.1:8080";
+        let str_command = "STOP 127.0.0.1:8080\n";
         let command_parsed = Command::parse(str_command);
         assert!(command_parsed.is_ok());
         let command_str = command_parsed.unwrap().to_string();
@@ -118,7 +131,7 @@ mod test {
 
     #[test]
     fn test_command_help() {
-        let str_command = "HELP";
+        let str_command = "HELP\n";
         let command_parsed = Command::parse(str_command);
         assert!(command_parsed.is_ok());
         let command_str = command_parsed.unwrap().to_string();
@@ -127,7 +140,7 @@ mod test {
 
     #[test]
     fn test_command_shutdown_key() {
-        let str_command = "SHUTDOWN key";
+        let str_command = "SHUTDOWN key\n";
         let command_parsed = Command::parse(str_command);
         assert!(command_parsed.is_ok());
         let command_str = command_parsed.unwrap().to_string();

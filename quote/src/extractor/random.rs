@@ -21,6 +21,9 @@ impl Extractor for RandomExtractor {
         }
     }
     fn run(self) -> Result<Self, String> {
+        #[cfg(feature = "logging")]
+        info!("RandomExtractor запущен");
+
         loop {
             let Ok(timestamp) = time::SystemTime::now().duration_since(time::UNIX_EPOCH) else {
                 #[cfg(feature = "logging")]
@@ -37,8 +40,8 @@ impl Extractor for RandomExtractor {
                 volume: rand::random(),
             };
 
-            #[cfg(feature = "logging")]
-            info!("Extractor: {:?}", quote);
+            // #[cfg(feature = "logging")]
+            // info!("Extractor: {:?}", quote);
 
             for tx in self.subscribers.iter() {
                 if let Err(e) = tx.send(quote.clone()) {

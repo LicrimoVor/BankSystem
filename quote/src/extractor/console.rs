@@ -26,6 +26,9 @@ impl Extractor for ConsoleExtractor {
             .write_all("Формат: <ticker> <price> <volume>\nНапример: BCD 100 0".as_bytes())
             .unwrap();
 
+        #[cfg(feature = "logging")]
+        info!("ConsoleExtractor запущен");
+
         loop {
             stdin.read_line(&mut buf).unwrap();
             if buf.trim().to_uppercase() == "EXIT" {

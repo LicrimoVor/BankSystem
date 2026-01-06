@@ -1,28 +1,32 @@
-use crate::{
-    distributor::Distributor,
-    types::{
-        command::Command,
-        message::MessageFormat,
-        stock::{StockQuote, Ticker},
-    },
-    worker::SubscribeWorker,
-};
+use crate::{distributor::Distributor, tcp_worker::TcpWorker, types::stock::StockQuote};
 use log::{info, warn};
 use std::{
     collections::HashMap,
-    io::{self, Read, Write},
-    net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener, TcpStream},
-    sync::mpsc::Receiver,
-    thread,
+    io,
+    net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener},
+    sync::{Arc, Mutex, RwLock, mpsc::Receiver},
+    thread::{self, JoinHandle},
     time::Duration,
 };
 
+pub(crate) struct MasterState {
+    pub(crate) connections: Mutex<HashMap<SocketAddr, Vec<Connection>>>,
+    pub(crate) distributor: Mutex<Distributor>,
+
+    pub(crate) shutdown: RwLock<bool>,
+    pub(crate) secret_key: RwLock<String>,
+}
+
 /// Тип соединения: адрес, id подписчика, поток
-struct Connection(SocketAddr, u32, thread::JoinHandle<Result<(), String>>);
+pub(crate) struct Connection(
+    pub(crate) SocketAddr,
+    pub(crate) u32,
+    pub(crate) thread::JoinHandle<Result<(), String>>,
+);
 
 /// Конфиг мастера
 pub struct MasterConfig {
-    secret_key: Vec<u8>,
+    secret_key: String,
     tcp_addr: SocketAddr,
 }
 
@@ -32,11 +36,8 @@ impl Default for MasterConfig {
             .take(32)
             .map(|a: u8| 32 + a / 4)
             .collect::<Vec<u8>>();
-        if let Ok(w) = String::from_utf8(secret_key.clone()) {
-            println!("Secret key: {}", w);
-        } else {
-            println!("Secret key (bytes): {:?}", secret_key);
-        }
+        let secret_key =
+            String::from_utf8(secret_key.clone()).unwrap_or("*СложныйПароль*".to_string());
 
         Self {
             secret_key,
@@ -47,67 +48,79 @@ impl Default for MasterConfig {
 
 /// Мастер сервера потоков
 pub struct Master {
-    connections: HashMap<SocketAddr, Vec<Connection>>,
-    distributor: Distributor,
     rx_stock: Receiver<StockQuote>,
+    tcp_threads: Vec<JoinHandle<Result<TcpWorker, String>>>,
 
-    shutdown: bool,
+    state: Arc<MasterState>,
     config: MasterConfig,
 }
 
 impl Master {
     pub fn new(rx_stock: Receiver<StockQuote>, config: Option<MasterConfig>) -> Self {
-        Self {
-            connections: HashMap::new(),
-            distributor: Distributor::new(),
-            rx_stock,
+        let config: MasterConfig = config.unwrap_or_default();
+        let state = Arc::new(MasterState {
+            connections: Mutex::new(HashMap::new()),
+            distributor: Mutex::new(Distributor::new()),
+            shutdown: RwLock::new(false),
 
-            shutdown: false,
-            config: config.unwrap_or_default(),
+            secret_key: RwLock::new(config.secret_key.clone()),
+        });
+
+        Self {
+            rx_stock,
+            state,
+            config,
+
+            tcp_threads: Vec::new(),
         }
     }
 
     /// Запуск мастера (можно в отдельном потоке)
     pub fn run(mut self) -> Result<Self, String> {
-        let listener = TcpListener::bind(self.config.tcp_addr).unwrap();
-        listener.set_nonblocking(true).unwrap();
+        let listener = TcpListener::bind(self.config.tcp_addr).map_err(|e| e.to_string())?;
+        listener.set_nonblocking(true).map_err(|e| e.to_string())?;
+
         loop {
-            if self.shutdown {
+            if *self.state.shutdown.read().unwrap() {
                 break;
             }
 
-            for stream in listener.incoming() {
-                match stream {
-                    Ok(stream) => {
-                        if let Err(e) = self.tcp_handle(stream) {
-                            #[cfg(feature = "logging")]
-                            warn!("{}", e);
-                        };
-                    }
-                    Err(e) if e.kind() == io::ErrorKind::WouldBlock => {
-                        continue;
-                    }
-                    Err(e) => {
-                        println!("{}", e);
-                        continue;
-                    }
+            match listener.accept() {
+                Ok((stream, _)) => {
+                    if let Ok(tcp_worker) = TcpWorker::new(stream, Arc::clone(&self.state)) {
+                        let tcp_thread = thread::spawn(move || tcp_worker.run());
+                        self.tcp_threads.push(tcp_thread);
+                    } else {
+                        #[cfg(feature = "logging")]
+                        warn!("Connection failed");
+                    };
+                }
+                Err(e) if e.kind() == io::ErrorKind::WouldBlock => {
+                    thread::sleep(Duration::from_micros(100));
+                }
+                Err(e) => {
+                    #[cfg(feature = "logging")]
+                    warn!("Connection failed: {}", e.to_string());
                 }
             }
             if let Ok(stock) = self.rx_stock.try_recv() {
-                self.distributor.send_all(stock);
+                if let Ok(mut distributor) = self.state.distributor.lock() {
+                    distributor.send_all(stock);
+                }
             }
-            thread::sleep(Duration::from_micros(100));
         }
 
-        let domens: Vec<SocketAddr> = self.connections.keys().cloned().collect();
+        let mut all_connections = self.state.connections.lock().map_err(|e| e.to_string())?;
+        let mut distributor = self.state.distributor.lock().map_err(|e| e.to_string())?;
+        let domens: Vec<SocketAddr> = all_connections.keys().cloned().collect();
         let mut threads = Vec::new();
 
         for domen in domens {
-            let Some(connections) = self.connections.remove(&domen) else {
+            let Some(connections) = all_connections.remove(&domen) else {
                 continue;
             };
             for Connection(_, id, thread) in connections {
-                self.distributor.unsubscribe(id);
+                distributor.unsubscribe(id);
                 threads.push((id, thread));
             }
         }
@@ -129,138 +142,9 @@ impl Master {
             }
         }
 
+        drop(all_connections);
+        drop(distributor);
+
         Ok(self)
-    }
-
-    fn tcp_handle(&mut self, mut stream: TcpStream) -> Result<(), String> {
-        stream.set_nonblocking(true).unwrap();
-        let mut buf = String::new();
-        let Ok(domen) = stream.peer_addr() else {
-            return Err("Connection failed".to_string());
-        };
-        let res: Result<String, &str> = match stream.read_to_string(&mut buf) {
-            Ok(_) => match Command::parse(buf.as_str()) {
-                Ok(command) => match command {
-                    Command::Stream((socket, tickers)) => {
-                        self.command_stream(domen, (socket, tickers))
-                    }
-                    Command::Stop(socket) => self.command_stop(domen, socket),
-                    Command::Disconnect => Ok(self.command_disconnect(domen)),
-                    Command::List => Ok(self.command_list(domen)),
-                    Command::Tickers => Ok(self.command_tickers()),
-                    Command::Help => Ok(Self::command_help()),
-                    Command::Shutdown(key) => self.command_shutdown(key),
-                },
-                Err(e) => {
-                    return Err(e.to_string());
-                }
-            },
-            Err(e) => Err(&e.to_string()),
-        };
-
-        let answer = match res {
-            Ok(res) => res,
-            Err(e) => e.to_string(),
-        };
-
-        if let Err(e) = stream.write_all(answer.as_bytes()) {
-            return Err(e.to_string());
-        };
-
-        Ok(())
-    }
-
-    // --- обработка команд с tcp ---
-
-    fn command_stream(
-        &mut self,
-        domen: SocketAddr,
-        (socket, tickers): (SocketAddr, Vec<Ticker>),
-    ) -> Result<String, &str> {
-        if let Some(connections) = self.connections.get_mut(&domen) {
-            if let Some(indx) = connections.iter().position(|c| c.0 == socket) {
-                if connections[indx].2.is_finished() {
-                    connections.remove(indx);
-                    return Err("Поток завершен");
-                }
-                return Err("Поток уже запущен");
-            }
-        }
-        let last_stocks = self.distributor.get_last_stocks(&tickers);
-
-        // пока формат захардкожен для соблюдения ТЗ, но если надо будет, то можно будет передавать через команду)
-        let (id, subscriber) = self.distributor.subscribe(tickers, MessageFormat::Json);
-        let Ok(worker) = SubscribeWorker::new(subscriber, socket) else {
-            return Err("Не удалось создать поток");
-        };
-
-        let handle = std::thread::spawn(move || worker.run(last_stocks));
-        self.connections
-            .entry(socket)
-            .or_default()
-            .push(Connection(socket, id, handle));
-        Ok("Запущен".to_string())
-    }
-
-    fn command_stop(&mut self, domen: SocketAddr, socket: SocketAddr) -> Result<String, &str> {
-        let Some(connections) = self.connections.get_mut(&domen) else {
-            return Err("Поток не запущен");
-        };
-        let Some(indx) = connections.iter().position(|c| c.0 == socket) else {
-            return Err("Поток не запущен");
-        };
-
-        let Connection(_, id, handle) = connections.remove(indx);
-        self.distributor.unsubscribe(id);
-        // Вопрос такой, правильно ли так делать?)
-        // по факту это может затормозить tcp-поток...
-        // handle.join();
-        Ok("Остановлен".to_string())
-    }
-
-    fn command_list(&self, domen: SocketAddr) -> String {
-        let Some(connections) = self.connections.get(&domen) else {
-            return "Потоков нет".to_string();
-        };
-        let mut res = String::new();
-        for (i, Connection(socket, _, handle)) in connections.iter().enumerate() {
-            res.push_str(&format!("{}:{}:{}\n", i, socket, !handle.is_finished()));
-        }
-        res
-    }
-
-    fn command_disconnect(&mut self, domen: SocketAddr) -> String {
-        let Some(connections) = self.connections.remove(&domen) else {
-            return "Отключено".to_string();
-        };
-        for Connection(_, id, handle) in connections {
-            self.distributor.unsubscribe(id);
-        }
-
-        return "Отключено".to_string();
-    }
-
-    fn command_tickers(&self) -> String {
-        self.distributor.get_tickers().join("\n")
-    }
-
-    fn command_help() -> String {
-        "
-Комманды:
-stream <ip>:<port> <ticker,ticker...> - создать поток
-stop <ip>:<port> - остановить поток
-list - список подключений
-disconnect - отключиться (завершив все потоки)
-tickers - список тикеров
-help - список комманд"
-            .to_string()
-    }
-
-    fn command_shutdown(&mut self, key: String) -> Result<String, &str> {
-        if key == String::from_utf8(self.config.secret_key.clone()).unwrap() {
-            self.shutdown = true;
-            return Ok("Успешно завершено".to_string());
-        }
-        Err("Неверный ключ")
     }
 }

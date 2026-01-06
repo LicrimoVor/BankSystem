@@ -1,191 +1,22 @@
-use log::info;
-#[cfg(feature = "logging")]
-use log::warn;
-
 use crate::types::{
-    command::Command,
-    message::{Message, MessageFormat},
-    stock::Ticker,
+    command::Command, error::QuoteError, message::Message, reciever::RecieverQuote, stock::Ticker,
 };
+#[cfg(feature = "logging")]
+use log::error;
+use log::info;
 use std::{
     collections::HashMap,
-    io::{self, Write},
-    net::{SocketAddr, TcpStream, UdpSocket},
-    sync::{
-        Arc, RwLock,
-        mpsc::{Receiver, Sender},
-    },
+    io::{BufRead, BufReader, Read, Write},
+    net::{SocketAddr, TcpStream},
+    sync::{Arc, RwLock, mpsc::Receiver},
+    thread::{self, JoinHandle},
 };
 
-const READ_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(5);
-const COUNT_RECONNECT: u8 = 10;
-const COUNT_TIMEOUT: u8 = 5;
-
-pub struct RecieverQuote {
-    addr: SocketAddr,
-
-    socket: UdpSocket,
-    format: MessageFormat,
-    tickers: Vec<Ticker>,
-    sender: Sender<Message>,
-
-    count_reconnect: u8,
-    count_timeout: u8,
-    latency: u128,
-    time_instant: Option<std::time::Instant>,
-
-    shutdown: Arc<RwLock<bool>>,
-}
-
-impl RecieverQuote {
-    pub fn new(
-        tickers: Vec<Ticker>,
-        addr: SocketAddr,
-        format: Option<MessageFormat>,
-        shutdown: Arc<RwLock<bool>>,
-    ) -> Result<(Self, Receiver<Message>), String> {
-        let Ok(socket) = UdpSocket::bind(addr) else {
-            #[cfg(feature = "logging")]
-            warn!("Не удалось создать сокет");
-            return Err("Не удалось создать сокет".to_string());
-        };
-        if let Err(e) = socket.set_read_timeout(Some(READ_TIMEOUT)) {
-            #[cfg(feature = "logging")]
-            warn!("{}", e);
-        };
-
-        if let Err(e) = socket.set_nonblocking(true) {
-            #[cfg(feature = "logging")]
-            warn!("{}", e);
-        };
-
-        let (sender, receiver) = std::sync::mpsc::channel();
-
-        Ok((
-            Self {
-                addr,
-
-                socket,
-                format: format.unwrap_or(MessageFormat::Json),
-                tickers,
-                sender,
-
-                count_reconnect: 0,
-                count_timeout: 0,
-                latency: 1000,
-                time_instant: None,
-
-                shutdown,
-            },
-            receiver,
-        ))
-    }
-
-    pub fn run(mut self) -> Result<(Self), String> {
-        let mut buf = [0u8; 1024];
-
-        loop {
-            let Ok(shutdown) = self.shutdown.read().map(|s| *s) else {
-                #[cfg(feature = "logging")]
-                warn!("Не удалось получить shutdown");
-                continue;
-            };
-
-            if shutdown {
-                self.message_handle(Message::Disconnect);
-                break Ok(self);
-            }
-
-            match self.socket.recv(&mut buf) {
-                Ok(n) => match Message::from_format(&buf[..n], &self.format) {
-                    Ok(msg) => match msg {
-                        Message::Ping => {
-                            #[cfg(feature = "logging")]
-                            warn!("Ping не ожидался");
-                        }
-                        Message::Pong => {
-                            self.count_reconnect = 0;
-                            self.count_timeout = 0;
-                            if let Some(instant) = self.time_instant {
-                                self.latency = instant.elapsed().as_millis();
-                            }
-                            #[cfg(feature = "logging")]
-                            info!("Latency: {}", self.latency);
-                        }
-                        Message::Disconnect => {
-                            self.message_handle(msg);
-                            break Ok(self);
-                        }
-                        _ => self.message_handle(msg),
-                    },
-                    Err(e) => {
-                        #[cfg(feature = "logging")]
-                        warn!("{}", e);
-                    }
-                },
-                Err(e)
-                    if e.kind() == std::io::ErrorKind::WouldBlock
-                        || e.kind() == io::ErrorKind::TimedOut =>
-                {
-                    self.keepalive();
-                    self.count_timeout += 1;
-                    if self.count_timeout >= COUNT_TIMEOUT {
-                        self.reconnect();
-                        #[cfg(feature = "logging")]
-                        warn!("Reconnect");
-                    }
-                }
-                Err(e) => {
-                    self.reconnect();
-                    self.keepalive();
-                    #[cfg(feature = "logging")]
-                    warn!("{}", e);
-                }
-            }
-
-            if self.count_reconnect >= COUNT_RECONNECT {
-                break Err("Reconnect failed".to_string());
-            }
-        }
-    }
-
-    fn reconnect(&mut self) {
-        self.count_reconnect += 1;
-        self.socket = match UdpSocket::bind(self.addr) {
-            Ok(s) => s,
-            Err(e) => {
-                #[cfg(feature = "logging")]
-                warn!("{}", e);
-                return;
-            }
-        };
-    }
-
-    fn message_handle(&mut self, message: Message) {
-        self.count_reconnect = 0;
-        self.count_timeout = 0;
-
-        if let Err(e) = self.sender.send(message) {
-            #[cfg(feature = "logging")]
-            warn!("{}", e);
-        }
-    }
-
-    fn keepalive(&mut self) {
-        self.time_instant = Some(std::time::Instant::now());
-
-        if let Ok(ping) = Message::Ping.to_bin() {
-            if let Err(e) = self.socket.send(&ping) {
-                #[cfg(feature = "logging")]
-                warn!("{}", e);
-            };
-        };
-    }
-}
-
+/// Клиент для получения котировок
 pub struct ClientQuote {
-    recievers: HashMap<u32, (RecieverQuote, Arc<RwLock<bool>>)>,
-    socket: TcpStream,
+    recievers: HashMap<u32, (JoinHandle<Result<RecieverQuote, String>>, Arc<RwLock<bool>>)>,
+    writer: TcpStream,
+    reader: BufReader<TcpStream>,
 
     count: u32,
 }
@@ -195,35 +26,97 @@ impl ClientQuote {
         let socket = TcpStream::connect(socket).map_err(|e| e.to_string())?;
         socket.set_nodelay(true).map_err(|e| e.to_string())?;
 
+        let reader = BufReader::new(socket.try_clone().map_err(|e| e.to_string())?);
+
+        #[cfg(feature = "logging")]
+        info!("Connection succsessfully created");
+
         Ok(Self {
             recievers: HashMap::new(),
-            socket,
+            writer: socket,
+            reader,
 
             count: 0,
         })
     }
 
+    /// Создать новый ресивер
     pub fn create_reciever(
         &mut self,
         tickers: Vec<Ticker>,
         addr: SocketAddr,
-    ) -> Result<Receiver<Message>, String> {
-        let command = Command::Stream((addr, tickers.clone()))
-            .to_string()
-            .as_bytes();
-        self.socket.write(command).map_err(|e| e.to_string())?;
-
+    ) -> Result<Receiver<Message>, QuoteError> {
         let id = self.count;
         self.count += 1;
         let shutdown = Arc::new(RwLock::new(false));
-        let (reciever_quote, receiver) = RecieverQuote::new(tickers, addr, None, shutdown.clone())?;
-        self.recievers.insert(id, (reciever_quote, shutdown));
+        let (reciever_quote, receiver) =
+            RecieverQuote::new(tickers.clone(), addr, None, shutdown.clone()).map_err(|e| {
+                #[cfg(feature = "logging")]
+                error!("{}", e);
+                QuoteError::Other(e.to_string())
+            })?;
+        let reciever_join = thread::spawn(move || reciever_quote.run());
+        self.recievers.insert(id, (reciever_join, shutdown));
+
+        if let Err(answ) = self.send_socket(Command::Stream((addr, tickers))) {
+            #[cfg(feature = "logging")]
+            error!("{:?}", answ);
+            return Err(answ);
+        };
         Ok(receiver)
     }
 
-    pub fn stop_reciever(&self) {}
+    pub fn stop_reciever(&mut self, id: u32) -> Result<(), String> {
+        let Some((reciever_join, shutdown)) = self.recievers.remove(&id) else {
+            return Err("Reciever not found".to_string());
+        };
+        let Ok(mut shutdown) = shutdown.write() else {
+            return Err("Shutdown failed".to_string());
+        };
+        *shutdown = true;
+        let receiver = reciever_join.join().map_err(|e| format!("{:?}", e))??;
 
-    pub fn stop_all_recievers(&self) {}
+        let command = Command::Stop(receiver.addr).to_string();
+        self.writer
+            .write_all(command.as_bytes())
+            .map_err(|e| e.to_string())?;
 
-    pub fn get_tickers(&self) {}
+        let mut buf = [0u8; 1024];
+        self.reader.read(&mut buf).map_err(|e| e.to_string())?;
+
+        Ok(())
+    }
+
+    pub fn stop_all_recievers(&mut self) {}
+
+    pub fn get_tickers(&mut self) -> Result<Vec<Ticker>, QuoteError> {
+        match self.send_socket(Command::Tickers) {
+            Ok(tickers) => Ok(tickers.trim().split('|').map(|s| s.to_string()).collect()),
+            Err(e) => Err(e),
+        }
+    }
+
+    fn send_socket(&mut self, command: Command) -> Result<String, QuoteError> {
+        #[cfg(feature = "logging")]
+        info!("Command: {:?}", command.to_string());
+
+        self.writer
+            .write_all(command.to_string().as_bytes())
+            .map_err(|_| QuoteError::NotConnection)?;
+        self.writer.flush().map_err(|_| QuoteError::NotConnection)?;
+
+        let mut buf = String::new();
+        self.reader
+            .read_line(&mut buf)
+            .map_err(|_| QuoteError::NotConnection)?;
+
+        if buf.len() < 5 {
+            return Err(QuoteError::Other("Empty answer".to_string()));
+        }
+
+        match QuoteError::from_string(&buf.trim()) {
+            Ok(e) => Err(e),
+            Err(_) => Ok(buf),
+        }
+    }
 }

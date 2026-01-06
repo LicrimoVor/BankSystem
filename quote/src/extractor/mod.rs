@@ -6,7 +6,7 @@ use std::sync::mpsc::Receiver;
 pub use console::ConsoleExtractor;
 pub use random::RandomExtractor;
 
-const SLEEP_TIME: std::time::Duration = std::time::Duration::from_millis(1000);
+const SLEEP_TIME: std::time::Duration = std::time::Duration::from_millis(3_000);
 
 /// Трейт экстрактора
 pub trait Extractor {

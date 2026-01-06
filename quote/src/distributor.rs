@@ -6,16 +6,16 @@ use log::info;
 use std::{
     collections::HashMap,
     rc::Rc,
-    sync::mpsc::{Receiver, Sender, TryRecvError, channel},
+    sync::{
+        Arc,
+        mpsc::{Receiver, Sender, TryRecvError, channel},
+    },
 };
 
 /// Событие для подписчиков
 pub(crate) enum Event {
     /// Обновить данные о акции
     Update(StockQuote),
-
-    /// Закрыть подписку на эту акцию
-    Close(Ticker),
 
     /// Отключить пользователя
     Disconnect,
@@ -50,14 +50,14 @@ impl Subscriber {
 }
 
 /// Данные о подписчике - какнал отправки, список акций
-struct SenderTicker(Rc<Sender<Event>>, Vec<Ticker>);
+struct SenderTicker(Arc<Sender<Event>>, Vec<Ticker>);
 
 /// Уведомляет подписчиков о новых ценах на акции
 pub(crate) struct Distributor {
     last_stocks: HashMap<Ticker, StockQuote>,
     subscribers: HashMap<u32, SenderTicker>,
 
-    ticker_senders: HashMap<Ticker, HashMap<u32, Rc<Sender<Event>>>>,
+    ticker_senders: HashMap<Ticker, HashMap<u32, Arc<Sender<Event>>>>,
 
     /// Счетчик подписок (служит для генерации id)
     __count: u32,
@@ -87,7 +87,7 @@ impl Distributor {
         info!("Подписка на акции {:?}. id: {}", tickers, id);
 
         let (sender, receiver) = channel();
-        let sender = Rc::new(sender);
+        let sender = Arc::new(sender);
 
         for ticker in &tickers {
             self.ticker_senders
@@ -120,7 +120,7 @@ impl Distributor {
     /// Отправить новые данные о акции
     pub fn send_all(&mut self, stock: StockQuote) {
         #[cfg(feature = "logging")]
-        dbg!("Отправляем акцию: {:?}", &stock);
+        info!("Отправляем акцию: {:?}", &stock);
 
         self.last_stocks.insert(stock.ticker.clone(), stock.clone());
 
@@ -129,12 +129,6 @@ impl Distributor {
                 let _ = sender.send(Event::Update(stock.clone()));
             }
         }
-    }
-
-    /// Удалить акцию
-    pub fn remove_stock(&mut self, ticker: Ticker) {
-        self.last_stocks.remove(&ticker);
-        self.ticker_senders.remove(&ticker);
     }
 
     /// Получить последние данные о акциях
@@ -149,6 +143,6 @@ impl Distributor {
     }
 
     pub fn get_tickers(&self) -> Vec<Ticker> {
-        self.ticker_senders.keys().cloned().collect()
+        self.last_stocks.keys().cloned().collect()
     }
 }
