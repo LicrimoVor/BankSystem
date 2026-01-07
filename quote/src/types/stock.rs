@@ -1,5 +1,6 @@
 use bincode::{Decode, Encode};
 use serde::{Deserialize, Serialize};
+use std::fmt::Display;
 
 pub type Ticker = String;
 
@@ -9,6 +10,16 @@ pub struct StockQuote {
     pub price: f64,
     pub volume: u32,
     pub timestamp: u64,
+}
+
+impl Display for StockQuote {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}:{} ₽. - {} ед. ({})",
+            self.ticker, self.price, self.volume, self.timestamp
+        )
+    }
 }
 
 // Методы для сериализации/десериализации

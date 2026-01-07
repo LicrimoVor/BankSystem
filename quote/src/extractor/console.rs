@@ -1,7 +1,7 @@
-use log::{info, warn};
-
 use super::{Extractor, SLEEP_TIME};
 use crate::types::stock::StockQuote;
+#[cfg(feature = "logging")]
+use log::{info, warn};
 use std::{
     io::{self, Write},
     sync::mpsc::{Receiver, Sender},
@@ -12,13 +12,16 @@ pub struct ConsoleExtractor {
     subscribers: Vec<Sender<StockQuote>>,
 }
 
-impl Extractor for ConsoleExtractor {
-    fn new() -> Self {
+impl ConsoleExtractor {
+    pub fn new() -> Self {
         Self {
             subscribers: Vec::new(),
         }
     }
-    fn run(self) -> Result<Self, String> {
+}
+
+impl Extractor for ConsoleExtractor {
+    fn run(self: Box<Self>) -> Result<(), String> {
         let stdin = io::stdin();
         let mut stdout = io::stdout();
         let mut buf = String::new();
@@ -32,7 +35,7 @@ impl Extractor for ConsoleExtractor {
         loop {
             stdin.read_line(&mut buf).unwrap();
             if buf.trim().to_uppercase() == "EXIT" {
-                break;
+                break Ok(());
             }
 
             let Ok(timestamp) = time::SystemTime::now().duration_since(time::UNIX_EPOCH) else {
@@ -90,7 +93,6 @@ impl Extractor for ConsoleExtractor {
             }
             std::thread::sleep(SLEEP_TIME);
         }
-        Ok(self)
     }
 
     fn subscribe(&mut self) -> Receiver<StockQuote> {

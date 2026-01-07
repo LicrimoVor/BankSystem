@@ -1,11 +1,8 @@
-use crate::{
-    types::message::MessageFormat,
-    types::stock::{StockQuote, Ticker},
-};
+use crate::types::stock::{StockQuote, Ticker};
+#[cfg(feature = "logging")]
 use log::info;
 use std::{
     collections::HashMap,
-    rc::Rc,
     sync::{
         Arc,
         mpsc::{Receiver, Sender, TryRecvError, channel},
@@ -21,26 +18,19 @@ pub(crate) enum Event {
     Disconnect,
 }
 
-/// Подписчик
+/// Udp Подписчик
 pub(crate) struct Subscriber {
     id: u32,
     tickers: Vec<Ticker>,
     receiver: Receiver<Event>,
-    message_format: MessageFormat,
 }
 
 impl Subscriber {
-    fn new(
-        id: u32,
-        tickers: Vec<String>,
-        message_format: MessageFormat,
-        receiver: Receiver<Event>,
-    ) -> Self {
+    fn new(id: u32, tickers: Vec<String>, receiver: Receiver<Event>) -> Self {
         Self {
             id,
             tickers,
             receiver,
-            message_format,
         }
     }
 
@@ -75,11 +65,7 @@ impl Distributor {
     }
 
     /// Подписаться на отслеживание акции
-    pub fn subscribe(
-        &mut self,
-        tickers: Vec<Ticker>,
-        message_format: MessageFormat,
-    ) -> (u32, Subscriber) {
+    pub fn subscribe(&mut self, tickers: Vec<Ticker>) -> (u32, Subscriber) {
         let id = self.__count;
         self.__count += 1;
 
@@ -99,7 +85,7 @@ impl Distributor {
         self.subscribers
             .insert(id, SenderTicker(sender, tickers.clone()));
 
-        return (id, Subscriber::new(id, tickers, message_format, receiver));
+        return (id, Subscriber::new(id, tickers, receiver));
     }
 
     /// Отписаться от отслеживания акции

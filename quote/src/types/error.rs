@@ -1,3 +1,4 @@
+/// Ошибки (все возможные ошибки в проекте)
 #[derive(Debug, Clone, PartialEq)]
 pub enum QuoteError {
     NotFound,
@@ -23,6 +24,11 @@ impl QuoteError {
     }
 
     pub fn from_string(s: &str) -> Result<Self, ()> {
+        if s.len() < 5 {
+            return Err(());
+        }
+
+        println!("{}", s);
         match &s[..5] {
             "NotFo" => Ok(QuoteError::NotFound),
             "BadRe" => Ok(QuoteError::BadRequest(s[11..].to_string())),

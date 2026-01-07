@@ -1,5 +1,27 @@
-use log::{error, info};
-use quote::client::ClientQuote;
+use clap::{Parser, command};
+#[cfg(feature = "logging")]
+use log::info;
+use quote::{
+    client::ClientQuote,
+    types::{message::UdpMessage, stock::Ticker},
+};
+use std::net::SocketAddr;
+
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Cli {
+    /// Тип экстрактора
+    #[arg(short, long)]
+    server: SocketAddr,
+
+    /// Адрес udp клиента
+    #[arg(long)]
+    host: Option<SocketAddr>,
+
+    /// Тикеры
+    #[arg(short, long)]
+    tickers: Vec<Ticker>,
+}
 
 fn main() {
     #[cfg(feature = "logging")]
@@ -10,15 +32,21 @@ fn main() {
         info!("Логирование инициализировано");
     }
 
-    let Ok(mut client) = ClientQuote::new("127.0.0.1:7878".parse().unwrap()) else {
+    let Cli {
+        server,
+        host,
+        tickers,
+    } = Cli::parse();
+
+    let host = host.unwrap_or("127.0.0.1:7878".parse().unwrap());
+    let Ok(mut client) = ClientQuote::new(server) else {
         println!("Init failed");
         return;
     };
 
-    let tickers = match client.get_tickers() {
+    match client.get_tickers() {
         Ok(tickers) => {
-            println!("Tickers: {:#?}", tickers);
-            tickers
+            println!("All tickers in server: {:#?}", tickers);
         }
         Err(e) => {
             println!("{:?}", e);
@@ -26,23 +54,36 @@ fn main() {
         }
     };
 
-    let addr = "127.0.0.1:7888".parse().unwrap();
-    let reciever = match client.create_reciever(tickers[0..2].to_vec(), addr) {
+    let reciever = match client.create_reciever(tickers, host) {
         Ok(reciever) => reciever,
         Err(e) => {
-            info!("{:?}", e);
+            println!("Error create reciever: {:?}", e);
             return;
         }
     };
 
-    for _ in 0..100 {
+    loop {
         let msg = match reciever.recv() {
             Ok(msg) => msg,
             Err(e) => {
-                info!("{:?}", e);
+                println!("{:?}", e);
                 return;
             }
         };
-        println!("{:?}", msg);
+        match msg {
+            UdpMessage::Stock(stock) => {
+                println!("{}", stock);
+            }
+            UdpMessage::Init(stocks) => {
+                for stock in stocks {
+                    println!("{}", stock);
+                }
+            }
+            UdpMessage::Disconnect => {
+                println!("Disconnect");
+                return;
+            }
+            _ => (),
+        }
     }
 }

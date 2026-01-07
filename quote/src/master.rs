@@ -1,4 +1,5 @@
 use crate::{distributor::Distributor, tcp_worker::TcpWorker, types::stock::StockQuote};
+#[cfg(feature = "logging")]
 use log::{info, warn};
 use std::{
     collections::HashMap,
@@ -30,17 +31,29 @@ pub struct MasterConfig {
     tcp_addr: SocketAddr,
 }
 
-impl Default for MasterConfig {
-    fn default() -> Self {
+impl MasterConfig {
+    pub fn new(secret_key: Option<String>, tcp_addr: Option<SocketAddr>) -> Self {
+        Self {
+            secret_key: secret_key.unwrap_or_else(|| Self::gen_secret_key()),
+            tcp_addr: tcp_addr
+                .unwrap_or_else(|| SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 7878)),
+        }
+    }
+
+    /// Генерация секретного ключа
+    pub fn gen_secret_key() -> String {
         let secret_key = rand::random_iter()
             .take(32)
             .map(|a: u8| 32 + a / 4)
             .collect::<Vec<u8>>();
-        let secret_key =
-            String::from_utf8(secret_key.clone()).unwrap_or("*СложныйПароль*".to_string());
+        String::from_utf8(secret_key.clone()).unwrap_or("*Pa$$w0rd*".to_string())
+    }
+}
 
+impl Default for MasterConfig {
+    fn default() -> Self {
         Self {
-            secret_key,
+            secret_key: Self::gen_secret_key(),
             tcp_addr: SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 7878),
         }
     }

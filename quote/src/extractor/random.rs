@@ -1,5 +1,6 @@
 use super::{Extractor, SLEEP_TIME};
 use crate::types::stock::{StockQuote, Ticker};
+#[cfg(feature = "logging")]
 use log::{info, warn};
 use std::{
     sync::mpsc::{Receiver, Sender},
@@ -12,15 +13,19 @@ pub struct RandomExtractor {
     tickers: Vec<Ticker>,
 }
 
-impl Extractor for RandomExtractor {
-    fn new() -> Self {
+impl RandomExtractor {
+    pub fn new() -> Self {
         let tickers: Vec<Ticker> = (0..10).into_iter().map(|i| format!("T{}", i)).collect();
+
         Self {
             subscribers: Vec::new(),
             tickers,
         }
     }
-    fn run(self) -> Result<Self, String> {
+}
+
+impl Extractor for RandomExtractor {
+    fn run(self: Box<Self>) -> Result<(), String> {
         #[cfg(feature = "logging")]
         info!("RandomExtractor запущен");
 
@@ -51,7 +56,6 @@ impl Extractor for RandomExtractor {
             }
             std::thread::sleep(SLEEP_TIME);
         }
-        Ok(self)
     }
 
     fn subscribe(&mut self) -> Receiver<StockQuote> {

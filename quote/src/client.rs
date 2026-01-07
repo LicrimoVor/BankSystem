@@ -1,12 +1,12 @@
 use crate::types::{
-    command::Command, error::QuoteError, message::Message, reciever::RecieverQuote, stock::Ticker,
+    command::TcpCommand, error::QuoteError, message::UdpMessage, reciever::RecieverQuote,
+    stock::Ticker,
 };
 #[cfg(feature = "logging")]
-use log::error;
-use log::info;
+use log::{error, info};
 use std::{
     collections::HashMap,
-    io::{BufRead, BufReader, Read, Write},
+    io::{BufRead, BufReader, Write},
     net::{SocketAddr, TcpStream},
     sync::{Arc, RwLock, mpsc::Receiver},
     thread::{self, JoinHandle},
@@ -45,7 +45,7 @@ impl ClientQuote {
         &mut self,
         tickers: Vec<Ticker>,
         addr: SocketAddr,
-    ) -> Result<Receiver<Message>, QuoteError> {
+    ) -> Result<Receiver<UdpMessage>, QuoteError> {
         let id = self.count;
         self.count += 1;
         let shutdown = Arc::new(RwLock::new(false));
@@ -56,13 +56,30 @@ impl ClientQuote {
                 QuoteError::Other(e.to_string())
             })?;
         let reciever_join = thread::spawn(move || reciever_quote.run());
-        self.recievers.insert(id, (reciever_join, shutdown));
 
-        if let Err(answ) = self.send_socket(Command::Stream((addr, tickers))) {
+        if let Err(answ) = self.send_socket(TcpCommand::Stream((addr, tickers))) {
             #[cfg(feature = "logging")]
-            error!("{:?}", answ);
+            error!("Error create reciever: {:?}", answ);
+
+            let mut shutdown = shutdown.write().unwrap();
+            *shutdown = true;
+
+            match reciever_join.join() {
+                Ok(Ok(_)) => {}
+                Ok(Err(e)) => {
+                    #[cfg(feature = "logging")]
+                    error!("{:?}", e);
+                }
+                Err(e) => {
+                    #[cfg(feature = "logging")]
+                    error!("{:?}", e);
+                }
+            };
+
             return Err(answ);
         };
+        self.recievers.insert(id, (reciever_join, shutdown));
+
         Ok(receiver)
     }
 
@@ -76,27 +93,20 @@ impl ClientQuote {
         *shutdown = true;
         let receiver = reciever_join.join().map_err(|e| format!("{:?}", e))??;
 
-        let command = Command::Stop(receiver.addr).to_string();
-        self.writer
-            .write_all(command.as_bytes())
+        self.send_socket(TcpCommand::Stop(receiver.addr))
             .map_err(|e| e.to_string())?;
-
-        let mut buf = [0u8; 1024];
-        self.reader.read(&mut buf).map_err(|e| e.to_string())?;
 
         Ok(())
     }
 
-    pub fn stop_all_recievers(&mut self) {}
-
     pub fn get_tickers(&mut self) -> Result<Vec<Ticker>, QuoteError> {
-        match self.send_socket(Command::Tickers) {
+        match self.send_socket(TcpCommand::Tickers) {
             Ok(tickers) => Ok(tickers.trim().split('|').map(|s| s.to_string()).collect()),
             Err(e) => Err(e),
         }
     }
 
-    fn send_socket(&mut self, command: Command) -> Result<String, QuoteError> {
+    fn send_socket(&mut self, command: TcpCommand) -> Result<String, QuoteError> {
         #[cfg(feature = "logging")]
         info!("Command: {:?}", command.to_string());
 
@@ -109,10 +119,6 @@ impl ClientQuote {
         self.reader
             .read_line(&mut buf)
             .map_err(|_| QuoteError::NotConnection)?;
-
-        if buf.len() < 5 {
-            return Err(QuoteError::Other("Empty answer".to_string()));
-        }
 
         match QuoteError::from_string(&buf.trim()) {
             Ok(e) => Err(e),
