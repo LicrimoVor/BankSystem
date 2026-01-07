@@ -66,13 +66,13 @@ impl ClientQuote {
 
             match reciever_join.join() {
                 Ok(Ok(_)) => {}
-                Ok(Err(e)) => {
+                Ok(Err(_e)) => {
                     #[cfg(feature = "logging")]
-                    error!("{:?}", e);
+                    error!("{:?}", _e);
                 }
-                Err(e) => {
+                Err(_e) => {
                     #[cfg(feature = "logging")]
-                    error!("{:?}", e);
+                    error!("{:?}", _e);
                 }
             };
 

@@ -49,9 +49,9 @@ impl Extractor for RandomExtractor {
             // info!("Extractor: {:?}", quote);
 
             for tx in self.subscribers.iter() {
-                if let Err(e) = tx.send(quote.clone()) {
+                if let Err(_e) = tx.send(quote.clone()) {
                     #[cfg(feature = "logging")]
-                    warn!("Extractor: Ошибка при отправке: {}", e);
+                    warn!("Extractor: Ошибка при отправке: {}", _e);
                 };
             }
             std::thread::sleep(SLEEP_TIME);

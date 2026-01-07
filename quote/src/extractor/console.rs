@@ -83,9 +83,10 @@ impl Extractor for ConsoleExtractor {
             info!("Получена котировка: {:?}", quote);
 
             for tx in self.subscribers.iter() {
-                if let Err(e) = tx.send(quote.clone()) {
+                if let Err(_e) = tx.send(quote.clone()) {
                     #[cfg(feature = "logging")]
-                    warn!("Ошибка при отправке: {}", e);
+                    warn!("Ошибка при отправке: {}", _e);
+
                     stdout
                         .write_all("Ошибка при отправке".as_bytes())
                         .map_err(|e| e.to_string())?;

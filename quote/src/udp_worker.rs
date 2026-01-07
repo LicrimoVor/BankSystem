@@ -86,15 +86,15 @@ impl UdpWorker {
                             _ => (),
                         }
                     }
-                    Err(e) => {
+                    Err(_e) => {
                         #[cfg(feature = "logging")]
-                        warn!("Error parse message: {}", e);
+                        warn!("Error parse message: {}", _e);
                     }
                 },
                 Err(e) if e.kind() == std::io::ErrorKind::TimedOut => (),
-                Err(e) => {
+                Err(_e) => {
                     #[cfg(feature = "logging")]
-                    warn!("Error connection: {}", e);
+                    warn!("Error connection: {}", _e);
                     self.count += 1;
                 }
             };
@@ -109,9 +109,9 @@ impl UdpWorker {
 
             return;
         };
-        if let Err(e) = self.socket.send_to(mes.as_slice(), self.addr) {
+        if let Err(_e) = self.socket.send_to(mes.as_slice(), self.addr) {
             #[cfg(feature = "logging")]
-            error!("Error send message: {}", e);
+            error!("Error send message: {}", _e);
             self.count += 1;
         } else {
             self.count = 0;

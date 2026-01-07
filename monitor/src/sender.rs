@@ -25,7 +25,7 @@ impl MetricsSender {
         let encoded = bincode::serialize(metrics)?;
 
         debug!("Отправка {} байт на {}", encoded.len(), target_addr);
-        let sent_bytes = self.socket.send_to(&encoded, target_addr)?;
+        let _ = self.socket.send_to(&encoded, target_addr)?;
 
         trace!("Успешно отправлено {} байт", sent_bytes);
         Ok(())
@@ -83,7 +83,7 @@ impl MetricsSender {
                         debug!("SQL-запрос: {}", metrics.to_sql());
                     }
                 }
-                Err(e) => {
+                Err(_) => {
                     error!("Ошибка отправки: {}", e);
                 }
             }

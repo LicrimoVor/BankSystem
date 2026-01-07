@@ -111,9 +111,9 @@ impl Master {
                 Err(e) if e.kind() == io::ErrorKind::WouldBlock => {
                     thread::sleep(Duration::from_micros(100));
                 }
-                Err(e) => {
+                Err(_e) => {
                     #[cfg(feature = "logging")]
-                    warn!("Connection failed: {}", e.to_string());
+                    warn!("Connection failed: {}", _e.to_string());
                 }
             }
             if let Ok(stock) = self.rx_stock.try_recv() {
@@ -138,19 +138,19 @@ impl Master {
             }
         }
 
-        for (id, thread) in threads {
+        for (_id, thread) in threads {
             match thread.join() {
                 Ok(Ok(())) => {
                     #[cfg(feature = "logging")]
-                    info!("Поток {} успешно завершился", id);
+                    info!("Поток {} успешно завершился", _id);
                 }
-                Ok(Err(e)) => {
+                Ok(Err(_e)) => {
                     #[cfg(feature = "logging")]
-                    warn!("Поток {} завершился с ошибкой: {}", id, e);
+                    warn!("Поток {} завершился с ошибкой: {}", _id, _e);
                 }
-                Err(e) => {
+                Err(_e) => {
                     #[cfg(feature = "logging")]
-                    warn!("Поток {} запаниковал - {:#?}", id, e);
+                    warn!("Поток {} запаниковал - {:#?}", _id, _e);
                 }
             }
         }

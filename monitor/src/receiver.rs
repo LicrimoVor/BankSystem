@@ -28,8 +28,8 @@ impl MetricsReceiver {
         info!("Запуск приёмника в отдельном потоке с каналом");
 
         let handle = thread::spawn(move || {
-            if let Err(e) = self.receive_loop_with_channel(tx) {
-                error!("Ошибка в receive_loop_with_channel: {}", e);
+            if let Err(_e) = self.receive_loop_with_channel(tx) {
+                error!("Ошибка в receive_loop_with_channel: {}", _e);
             }
         });
 
@@ -63,13 +63,13 @@ impl MetricsReceiver {
 
                         trace!("Метрики отправлены в канал");
                     }
-                    Err(e) => {
-                        error!("Ошибка десериализации: {}", e);
+                    Err(_e) => {
+                        error!("Ошибка десериализации: {}", _e);
                         debug!("Сырые данные: {:?}", &buf[..size]);
                     }
                 },
-                Err(e) => {
-                    error!("Ошибка получения данных: {}", e);
+                Err(_e) => {
+                    error!("Ошибка получения данных: {}", _e);
                 }
             }
         }

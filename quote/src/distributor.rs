@@ -20,16 +20,16 @@ pub(crate) enum Event {
 
 /// Udp Подписчик
 pub(crate) struct Subscriber {
-    id: u32,
-    tickers: Vec<Ticker>,
+    _id: u32,
+    _tickers: Vec<Ticker>,
     receiver: Receiver<Event>,
 }
 
 impl Subscriber {
     fn new(id: u32, tickers: Vec<String>, receiver: Receiver<Event>) -> Self {
         Self {
-            id,
-            tickers,
+            _id: id,
+            _tickers: tickers,
             receiver,
         }
     }

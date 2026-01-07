@@ -21,7 +21,7 @@ const COUNT_TIMEOUT: u8 = 10;
 
 pub(crate) struct RecieverQuote {
     pub(crate) addr: SocketAddr,
-    pub(crate) tickers: Vec<Ticker>,
+    _tickers: Vec<Ticker>,
 
     socket: UdpSocket,
     format: UdpMessageFormat,
@@ -46,16 +46,17 @@ impl RecieverQuote {
         let Ok(socket) = UdpSocket::bind(addr) else {
             #[cfg(feature = "logging")]
             warn!("Не удалось создать сокет");
+
             return Err("Не удалось создать сокет".to_string());
         };
-        if let Err(e) = socket.set_read_timeout(Some(READ_TIMEOUT)) {
+        if let Err(_e) = socket.set_read_timeout(Some(READ_TIMEOUT)) {
             #[cfg(feature = "logging")]
-            warn!("Не удалось установить таймаут: {}", e);
+            warn!("Не удалось установить таймаут: {}", _e);
         };
 
-        if let Err(e) = socket.set_nonblocking(false) {
+        if let Err(_e) = socket.set_nonblocking(false) {
             #[cfg(feature = "logging")]
-            warn!("Не удалось установить nonblocking: {}", e);
+            warn!("Не удалось установить nonblocking: {}", _e);
         };
         let (sender, receiver) = std::sync::mpsc::channel();
         let format = format.unwrap_or(UdpMessageFormat::Json);
@@ -63,7 +64,7 @@ impl RecieverQuote {
         Ok((
             Self {
                 addr,
-                tickers,
+                _tickers: tickers,
 
                 socket,
                 format,
@@ -124,9 +125,9 @@ impl RecieverQuote {
             match self.socket.recv(&mut buf) {
                 Ok(n) => match UdpMessage::from_format(&buf[..n], &self.format) {
                     Ok(msg) => self.message_handle(msg),
-                    Err(e) => {
+                    Err(_e) => {
                         #[cfg(feature = "logging")]
-                        warn!("Ошибка преобразования: {}", e);
+                        warn!("Ошибка преобразования: {}", _e);
                     }
                 },
                 Err(e)
@@ -142,11 +143,11 @@ impl RecieverQuote {
                         warn!("Reconnect");
                     }
                 }
-                Err(e) => {
+                Err(_e) => {
                     self.reconnect();
                     self.keepalive();
                     #[cfg(feature = "logging")]
-                    warn!("{}", e);
+                    warn!("{}", _e);
                 }
             }
 
@@ -160,20 +161,20 @@ impl RecieverQuote {
         self.count_reconnect += 1;
         self.socket = match UdpSocket::bind(self.addr) {
             Ok(s) => s,
-            Err(e) => {
+            Err(_e) => {
                 #[cfg(feature = "logging")]
-                warn!("{}", e);
+                warn!("{}", _e);
                 return;
             }
         };
-        if let Err(e) = self.socket.set_read_timeout(Some(READ_TIMEOUT)) {
+        if let Err(_e) = self.socket.set_read_timeout(Some(READ_TIMEOUT)) {
             #[cfg(feature = "logging")]
-            warn!("{}", e);
+            warn!("{}", _e);
         };
 
-        if let Err(e) = self.socket.set_nonblocking(true) {
+        if let Err(_e) = self.socket.set_nonblocking(true) {
             #[cfg(feature = "logging")]
-            warn!("{}", e);
+            warn!("{}", _e);
         };
     }
 
@@ -208,9 +209,9 @@ impl RecieverQuote {
         self.time_instant = Some(std::time::Instant::now());
 
         if let Ok(ping) = UdpMessage::Ping.to_format(&self.format) {
-            if let Err(e) = self.socket.send_to(&ping, self.server.unwrap()) {
+            if let Err(_e) = self.socket.send_to(&ping, self.server.unwrap()) {
                 #[cfg(feature = "logging")]
-                warn!("Ошибка отправки ping: {}", e);
+                warn!("Ошибка отправки ping: {}", _e);
             };
         };
     }

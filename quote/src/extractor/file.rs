@@ -18,9 +18,9 @@ pub struct FileMockExtractor {
 impl FileMockExtractor {
     pub fn new(mut file: File) -> Self {
         let mut text = String::new();
-        if let Err(e) = file.read_to_string(&mut text) {
+        if let Err(_e) = file.read_to_string(&mut text) {
             #[cfg(feature = "logging")]
-            warn!("Невозможно прочитать файл: {}", e);
+            warn!("Невозможно прочитать файл: {}", _e);
         };
 
         let tickers: Vec<Ticker> = text
@@ -61,9 +61,9 @@ impl Extractor for FileMockExtractor {
             };
 
             for tx in self.subscribers.iter() {
-                if let Err(e) = tx.send(quote.clone()) {
+                if let Err(_e) = tx.send(quote.clone()) {
                     #[cfg(feature = "logging")]
-                    warn!("Extractor: Ошибка при отправке: {}", e);
+                    warn!("Extractor: Ошибка при отправке: {}", _e);
                 };
             }
             std::thread::sleep(SLEEP_TIME);

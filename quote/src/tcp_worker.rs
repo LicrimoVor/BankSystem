@@ -76,9 +76,9 @@ impl TcpWorker {
                     std::thread::sleep(DURATION_SLEEP);
                     continue;
                 }
-                Err(e) => {
+                Err(_e) => {
                     #[cfg(feature = "logging")]
-                    warn!("Error read: {:?}", e);
+                    warn!("Error read: {:?}", _e);
 
                     self.count += 1;
                     let answ = QuoteError::InternalError.to_string();
@@ -111,9 +111,9 @@ impl TcpWorker {
         };
         let answer = format!("{}\n", answer);
 
-        if let Err(e) = self.stream.write_all(&answer.into_bytes()) {
+        if let Err(_e) = self.stream.write_all(&answer.into_bytes()) {
             #[cfg(feature = "logging")]
-            warn!("Error write: {}", e);
+            warn!("Error write: {}", _e);
 
             return Err(QuoteError::NotConnection);
         };
@@ -155,9 +155,9 @@ impl TcpWorker {
         // пока формат захардкожен для соблюдения ТЗ, но если надо будет, то можно будет передавать через команду)
         let worker = match UdpWorker::new(subscriber, socket, None) {
             Ok(worker) => worker,
-            Err(e) => {
+            Err(_e) => {
                 #[cfg(feature = "logging")]
-                warn!("{}: Connection failed: {}", socket, e.to_string());
+                warn!("{}: Connection failed: {}", socket, _e.to_string());
                 return Err(QuoteError::NotConnection);
             }
         };

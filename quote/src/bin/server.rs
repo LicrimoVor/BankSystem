@@ -1,8 +1,6 @@
 use clap::{Parser, command};
 use quote::{
-    extractor::{
-        self, ConsoleExtractor, Extractor, ExtractorType, FileMockExtractor, RandomExtractor,
-    },
+    extractor::{ConsoleExtractor, Extractor, ExtractorType, FileMockExtractor, RandomExtractor},
     master::{Master, MasterConfig},
 };
 use std::{fs::File, net::SocketAddr, thread};
