@@ -10,14 +10,6 @@ use std::{
     time::Duration,
 };
 
-pub(crate) struct MasterState {
-    pub(crate) connections: Mutex<HashMap<SocketAddr, Vec<Connection>>>,
-    pub(crate) distributor: Mutex<Distributor>,
-
-    pub(crate) shutdown: RwLock<bool>,
-    pub(crate) secret_key: RwLock<String>,
-}
-
 /// Тип соединения: адрес, id подписчика, поток
 pub(crate) struct Connection(
     pub(crate) SocketAddr,

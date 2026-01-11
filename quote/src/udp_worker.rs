@@ -91,7 +91,12 @@ impl UdpWorker {
                         warn!("Error parse message: {}", _e);
                     }
                 },
-                Err(e) if e.kind() == std::io::ErrorKind::TimedOut => (),
+                Err(e)
+                    if e.kind() == std::io::ErrorKind::TimedOut
+                        || e.kind() == std::io::ErrorKind::WouldBlock =>
+                {
+                    ()
+                }
                 Err(_e) => {
                     #[cfg(feature = "logging")]
                     warn!("Error connection: {}", _e);

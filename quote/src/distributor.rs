@@ -1,13 +1,8 @@
 use crate::types::stock::{StockQuote, Ticker};
+use crossbeam::channel;
 #[cfg(feature = "logging")]
 use log::info;
-use std::{
-    collections::HashMap,
-    sync::{
-        Arc,
-        mpsc::{Receiver, Sender, TryRecvError, channel},
-    },
-};
+use std::{collections::HashMap, sync::Arc};
 
 /// Событие для подписчиков
 pub(crate) enum Event {
@@ -22,11 +17,11 @@ pub(crate) enum Event {
 pub(crate) struct Subscriber {
     _id: u32,
     _tickers: Vec<Ticker>,
-    receiver: Receiver<Event>,
+    receiver: channel::Receiver<Event>,
 }
 
 impl Subscriber {
-    fn new(id: u32, tickers: Vec<String>, receiver: Receiver<Event>) -> Self {
+    fn new(id: u32, tickers: Vec<String>, receiver: channel::Receiver<Event>) -> Self {
         Self {
             _id: id,
             _tickers: tickers,
@@ -34,20 +29,20 @@ impl Subscriber {
         }
     }
 
-    pub fn get_event(&self) -> Result<Event, TryRecvError> {
+    pub fn get_event(&self) -> Result<Event, channel::TryRecvError> {
         self.receiver.try_recv()
     }
 }
 
 /// Данные о подписчике - какнал отправки, список акций
-struct SenderTicker(Arc<Sender<Event>>, Vec<Ticker>);
+struct SenderTicker(Arc<channel::Sender<Event>>, Vec<Ticker>);
 
 /// Уведомляет подписчиков о новых ценах на акции
 pub(crate) struct Distributor {
     last_stocks: HashMap<Ticker, StockQuote>,
     subscribers: HashMap<u32, SenderTicker>,
 
-    ticker_senders: HashMap<Ticker, HashMap<u32, Arc<Sender<Event>>>>,
+    ticker_senders: HashMap<Ticker, HashMap<u32, Arc<channel::Sender<Event>>>>,
 
     /// Счетчик подписок (служит для генерации id)
     __count: u32,
@@ -72,7 +67,7 @@ impl Distributor {
         #[cfg(feature = "logging")]
         info!("Подписка на акции {:?}. id: {}", tickers, id);
 
-        let (sender, receiver) = channel();
+        let (sender, receiver) = channel::bounded(1024);
         let sender = Arc::new(sender);
 
         for ticker in &tickers {
