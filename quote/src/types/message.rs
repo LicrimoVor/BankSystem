@@ -107,6 +107,9 @@ impl UdpMessage {
         let Ok(data) = String::from_utf8(data.to_vec()) else {
             return Err(EncodeError::Other("Ошибка кодирования"));
         };
+        if data.len() < 4 {
+            return Err(EncodeError::Other("Ошибка кодирования"));
+        }
         let mes = &data[..4];
 
         match mes {

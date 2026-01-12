@@ -477,7 +477,7 @@ dependencies = [
 
 [[package]]
 name = "quote"
-version = "0.5.5"
+version = "0.5.7"
 dependencies = [
  "bincode 2.0.1",
  "clap",
@@ -487,6 +487,7 @@ dependencies = [
  "rand",
  "serde",
  "serde_json",
+ "thiserror",
 ]
 
 [[package]]

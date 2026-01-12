@@ -13,7 +13,7 @@ struct Cli {
     extractor: ExtractorType,
 
     /// Файл для экстратора
-    #[arg(short, long)]
+    #[arg(short, long, required_if_eq("extractor", "file"))]
     file: Option<String>,
 
     /// Адрес сервера
@@ -42,11 +42,6 @@ fn main() {
     } = Cli::parse();
 
     let file: Option<File> = if extractor == ExtractorType::File {
-        if file.is_none() {
-            println!("Файл не указан");
-            return;
-        }
-
         let file = file.unwrap();
         if !std::path::Path::new(&file).exists() {
             println!("Файл не существует");

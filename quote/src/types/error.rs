@@ -1,12 +1,21 @@
-/// Ошибки (все возможные ошибки в проекте)
-#[derive(Debug, Clone, PartialEq)]
+use thiserror::Error;
+
+/// ### Ошибки (все возможные ошибки в проекте)
+#[derive(Debug, Error, Clone, PartialEq)]
 pub enum QuoteError {
+    #[error("Не найден элемент по ключу.")]
     NotFound,
+    #[error("Ошибка запорса: {0}")]
     BadRequest(String),
+    #[error("Произошла внутренняя ошибка.")]
     InternalError,
+    #[error("Нет соединения.")]
     NotConnection,
+    #[error("Элемент с таким ключом уже существует.")]
     AlreadyExists,
+    #[error("Ключи не совпадают.")]
     KeyNotEqual,
+    #[error("Другая ошибка: {0}")]
     Other(String),
 }
 
