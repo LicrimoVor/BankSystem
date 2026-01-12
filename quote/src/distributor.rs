@@ -42,6 +42,7 @@ pub(crate) struct Distributor {
     last_stocks: HashMap<Ticker, StockQuote>,
     subscribers: HashMap<u32, SenderTicker>,
 
+    /// ticker: {id: sender}
     ticker_senders: HashMap<Ticker, HashMap<u32, Arc<channel::Sender<Event>>>>,
 
     /// Счетчик подписок (служит для генерации id)
@@ -88,11 +89,18 @@ impl Distributor {
         #[cfg(feature = "logging")]
         info!("Отпика от акций id: {}", id);
 
-        if let Some(SenderTicker(sender, stocks)) = self.subscribers.remove(&id) {
+        if let Some(SenderTicker(sender, tickers)) = self.subscribers.remove(&id) {
             let _ = sender.send(Event::Disconnect);
-            for stock in stocks {
-                if let Some(sender) = self.ticker_senders.get_mut(&stock) {
-                    sender.remove(&id);
+            for ticker in tickers {
+                // получаем всех senders, которые соответствуют этой акции и этому пользователю
+                if let Some(senders) = self.ticker_senders.get_mut(&ticker) {
+                    senders.remove(&id);
+                }
+                // если на такой тикер никто не подписан, удаляем его
+                if let Some(senders) = self.ticker_senders.get(&ticker) {
+                    if senders.is_empty() {
+                        self.ticker_senders.remove(&ticker);
+                    }
                 }
             }
         }

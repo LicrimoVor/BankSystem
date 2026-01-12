@@ -1,6 +1,11 @@
 use crate::{
-    master::{Connection, MasterState},
-    types::{command::TcpCommand, error::QuoteError, stock::Ticker},
+    master::Connection,
+    types::{
+        command::TcpCommand,
+        error::QuoteError,
+        state::{MasterState, MasterStateShell},
+        stock::Ticker,
+    },
     udp_worker::UdpWorker,
 };
 #[cfg(feature = "logging")]
@@ -56,9 +61,15 @@ impl TcpWorker {
         info!("TcpWorker running: {}", self.domen);
 
         let mut reader = BufReader::new(self.stream.try_clone().map_err(|e| e.to_string())?);
-
+        let mut shutdown = false;
+        let shell = MasterStateShell::new(self.state.clone());
         loop {
-            if *self.state.shutdown.read().unwrap() || self.count > COUNT_TRY_SEND {
+            if let Ok(shutdown_guard) = shell.shutdown() {
+                if **shutdown_guard.get() {
+                    shutdown = true;
+                }
+            }
+            if shutdown {
                 let _ = self.stream.write_all("Finish\n".as_bytes());
                 break Ok(self);
             }
@@ -70,7 +81,7 @@ impl TcpWorker {
                 }
                 Ok(_) => {
                     self.count = 0;
-                    let _ = self.tcp_handle(&mut buf);
+                    let _ = self.tcp_handle(&mut buf, &shell);
                 }
                 Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
                     std::thread::sleep(DURATION_SLEEP);
@@ -89,18 +100,24 @@ impl TcpWorker {
     }
 
     /// Обработка команд
-    fn tcp_handle(&mut self, buffer: &mut String) -> Result<(), QuoteError> {
+    fn tcp_handle(
+        &mut self,
+        buffer: &mut String,
+        shell: &MasterStateShell,
+    ) -> Result<(), QuoteError> {
         #[cfg(feature = "logging")]
         info!("Command tcp: {:?}", buffer);
         let res: Result<String, QuoteError> = match TcpCommand::parse(buffer) {
             Ok(command) => match command {
-                TcpCommand::Stream((socket, tickers)) => self.command_stream(socket, tickers),
-                TcpCommand::Stop(socket) => self.command_stop(socket),
-                TcpCommand::Disconnect => self.command_disconnect(),
-                TcpCommand::List => self.command_list(),
-                TcpCommand::Tickers => self.command_tickers(),
+                TcpCommand::Stream((socket, tickers)) => {
+                    self.command_stream(socket, tickers, &shell)
+                }
+                TcpCommand::Stop(socket) => self.command_stop(socket, &shell),
+                TcpCommand::Disconnect => self.command_disconnect(&shell),
+                TcpCommand::List => self.command_list(&shell),
+                TcpCommand::Tickers => self.command_tickers(&shell),
                 TcpCommand::Help => Ok(Self::command_help()),
-                TcpCommand::Shutdown(key) => self.command_shutdown(key),
+                TcpCommand::Shutdown(key) => self.command_shutdown(key, &shell),
             },
             Err(e) => Err(QuoteError::BadRequest(e.to_string())),
         };
@@ -127,17 +144,15 @@ impl TcpWorker {
         &mut self,
         socket: SocketAddr,
         tickers: Vec<Ticker>,
+        shell: &MasterStateShell,
     ) -> Result<String, QuoteError> {
-        let mut all_connections = self
-            .state
-            .connections
-            .lock()
-            .map_err(|_| QuoteError::InternalError)?;
-        let mut distributor = self
-            .state
-            .distributor
-            .lock()
-            .map_err(|_| QuoteError::InternalError)?;
+        let (Ok(mut all_connections_guard), Ok(mut distributor_guard)) =
+            (shell.connections(), shell.distributor())
+        else {
+            return Err(QuoteError::InternalError);
+        };
+        let all_connections = all_connections_guard.get_mut();
+        let distributor = distributor_guard.get_mut();
 
         if let Some(connections) = all_connections.get_mut(&self.domen) {
             if let Some(indx) = connections.iter().position(|c| c.0 == socket) {
@@ -170,17 +185,18 @@ impl TcpWorker {
         Ok("Running".to_string())
     }
 
-    fn command_stop(&mut self, socket: SocketAddr) -> Result<String, QuoteError> {
-        let mut all_connections = self
-            .state
-            .connections
-            .lock()
-            .map_err(|_| QuoteError::InternalError)?;
-        let mut distributor = self
-            .state
-            .distributor
-            .lock()
-            .map_err(|_| QuoteError::InternalError)?;
+    fn command_stop(
+        &mut self,
+        socket: SocketAddr,
+        shell: &MasterStateShell,
+    ) -> Result<String, QuoteError> {
+        let (Ok(mut all_connections_guard), Ok(mut distributor_guard)) =
+            (shell.connections(), shell.distributor())
+        else {
+            return Err(QuoteError::InternalError);
+        };
+        let all_connections = all_connections_guard.get_mut();
+        let distributor = distributor_guard.get_mut();
 
         let Some(connections) = all_connections.get_mut(&self.domen) else {
             return Err(QuoteError::NotFound);
@@ -197,14 +213,11 @@ impl TcpWorker {
         Ok("Stopped".to_string())
     }
 
-    fn command_list(&self) -> Result<String, QuoteError> {
-        let all_connections = self
-            .state
-            .connections
-            .lock()
-            .map_err(|_| QuoteError::InternalError)?;
-
-        let Some(connections) = all_connections.get(&self.domen) else {
+    fn command_list(&self, shell: &MasterStateShell) -> Result<String, QuoteError> {
+        let Ok(all_connections_guard) = shell.connections() else {
+            return Err(QuoteError::InternalError);
+        };
+        let Some(connections) = all_connections_guard.get().get(&self.domen) else {
             return Err(QuoteError::NotFound);
         };
         let mut res = String::new();
@@ -214,39 +227,31 @@ impl TcpWorker {
         Ok(res)
     }
 
-    fn command_disconnect(&mut self) -> Result<String, QuoteError> {
-        let mut all_connections = self
-            .state
-            .connections
-            .lock()
-            .map_err(|_| QuoteError::InternalError)?;
-        let mut distributor = self
-            .state
-            .distributor
-            .lock()
-            .map_err(|_| QuoteError::InternalError)?;
+    fn command_disconnect(&mut self, shell: &MasterStateShell) -> Result<String, QuoteError> {
+        let (Ok(mut all_connections_guard), Ok(mut distributor_guard)) =
+            (shell.connections(), shell.distributor())
+        else {
+            return Err(QuoteError::InternalError);
+        };
 
-        let Some(connections) = all_connections.remove(&self.domen) else {
+        let Some(connections) = all_connections_guard.get_mut().remove(&self.domen) else {
             return Err(QuoteError::NotFound);
         };
         for Connection(_, id, _) in connections {
-            distributor.unsubscribe(id);
+            distributor_guard.get_mut().unsubscribe(id);
         }
 
         return Ok("Disconnected".to_string());
     }
 
-    fn command_tickers(&self) -> Result<String, QuoteError> {
-        let distributor = self
-            .state
-            .distributor
-            .lock()
-            .map_err(|_| QuoteError::InternalError)?;
-
+    fn command_tickers(&self, shell: &MasterStateShell) -> Result<String, QuoteError> {
+        let Ok(distributor_guard) = shell.distributor() else {
+            return Err(QuoteError::InternalError);
+        };
+        let distributor = distributor_guard.get();
         if distributor.get_tickers().is_empty() {
             return Err(QuoteError::NotFound);
         }
-
         Ok(distributor.get_tickers().join("|"))
     }
 
@@ -262,19 +267,24 @@ help - список комманд"
             .to_string()
     }
 
-    fn command_shutdown(&mut self, key: String) -> Result<String, QuoteError> {
-        let secret_key = self
-            .state
-            .secret_key
-            .read()
-            .map_err(|_| QuoteError::InternalError)?;
-        if key == *secret_key {
-            let mut shutdown = self
-                .state
-                .shutdown
-                .write()
-                .map_err(|_| QuoteError::InternalError)?;
-            *shutdown = true;
+    fn command_shutdown(
+        &mut self,
+        key: String,
+        shell: &MasterStateShell,
+    ) -> Result<String, QuoteError> {
+        let Ok(secret_key_guard) = shell.secret_key() else {
+            return Err(QuoteError::InternalError);
+        };
+
+        if key == **secret_key_guard.get() {
+            drop(secret_key_guard);
+
+            let Ok(mut shutdown_guard) = shell.shutdown_mut() else {
+                return Err(QuoteError::InternalError);
+            };
+
+            let shutdown = shutdown_guard.get_mut();
+            **shutdown = true;
             return Ok("Shutdown".to_string());
         }
         Err(QuoteError::KeyNotEqual)

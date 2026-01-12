@@ -1,9 +1,10 @@
-use crate::types::{
-    command::TcpCommand, error::QuoteError, message::UdpMessage, reciever::RecieverQuote,
-    stock::Ticker,
+use crate::{
+    logging,
+    types::{
+        command::TcpCommand, error::QuoteError, message::UdpMessage, reciever::RecieverQuote,
+        stock::Ticker,
+    },
 };
-#[cfg(feature = "logging")]
-use log::{error, info};
 use std::{
     collections::HashMap,
     io::{BufRead, BufReader, Write},
@@ -27,9 +28,7 @@ impl ClientQuote {
         socket.set_nodelay(true).map_err(|e| e.to_string())?;
 
         let reader = BufReader::new(socket.try_clone().map_err(|e| e.to_string())?);
-
-        #[cfg(feature = "logging")]
-        info!("Connection succsessfully created");
+        logging!(info, ("Connection succsessfully created"));
 
         Ok(Self {
             recievers: HashMap::new(),
@@ -51,28 +50,24 @@ impl ClientQuote {
         let shutdown = Arc::new(RwLock::new(false));
         let (reciever_quote, receiver) =
             RecieverQuote::new(tickers.clone(), addr, None, shutdown.clone()).map_err(|e| {
-                #[cfg(feature = "logging")]
-                error!("{}", e);
+                logging!(error, ("Error create reciever: {}", e));
+
                 QuoteError::Other(e.to_string())
             })?;
         let reciever_join = thread::spawn(move || reciever_quote.run());
 
         if let Err(answ) = self.send_socket(TcpCommand::Stream((addr, tickers))) {
-            #[cfg(feature = "logging")]
-            error!("Error create reciever: {:?}", answ);
-
+            logging!(debug, ("Error create reciever: {:?}", answ));
             let mut shutdown = shutdown.write().unwrap();
             *shutdown = true;
 
             match reciever_join.join() {
                 Ok(Ok(_)) => {}
                 Ok(Err(_e)) => {
-                    #[cfg(feature = "logging")]
-                    error!("{:?}", _e);
+                    logging!(error, ("{:?}", _e));
                 }
                 Err(_e) => {
-                    #[cfg(feature = "logging")]
-                    error!("{:?}", _e);
+                    logging!(error, ("{:?}", _e));
                 }
             };
 
@@ -107,8 +102,7 @@ impl ClientQuote {
     }
 
     fn send_socket(&mut self, command: TcpCommand) -> Result<String, QuoteError> {
-        #[cfg(feature = "logging")]
-        info!("Command: {:?}", command.to_string());
+        logging!(info, ("Command {:?}", command.to_string()));
 
         self.writer
             .write_all(command.to_string().as_bytes())

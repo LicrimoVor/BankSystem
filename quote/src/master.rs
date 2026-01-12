@@ -1,11 +1,18 @@
-use crate::{distributor::Distributor, tcp_worker::TcpWorker, types::stock::StockQuote};
+use crate::{
+    distributor::Distributor,
+    tcp_worker::TcpWorker,
+    types::{
+        state::{MasterState, MasterStateShell},
+        stock::StockQuote,
+    },
+};
 #[cfg(feature = "logging")]
 use log::{info, warn};
 use std::{
     collections::HashMap,
     io,
     net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener},
-    sync::{Arc, Mutex, RwLock, mpsc::Receiver},
+    sync::{Arc, mpsc::Receiver},
     thread::{self, JoinHandle},
     time::Duration,
 };
@@ -63,20 +70,19 @@ pub struct Master {
 impl Master {
     pub fn new(rx_stock: Receiver<StockQuote>, config: Option<MasterConfig>) -> Self {
         let config: MasterConfig = config.unwrap_or_default();
-        let state = Arc::new(MasterState {
-            connections: Mutex::new(HashMap::new()),
-            distributor: Mutex::new(Distributor::new()),
-            shutdown: RwLock::new(false),
-
-            secret_key: RwLock::new(config.secret_key.clone()),
-        });
+        let state = Arc::new(MasterState::new(
+            HashMap::new(),
+            Distributor::new(),
+            false,
+            config.secret_key.clone(),
+        ));
 
         Self {
             rx_stock,
+            tcp_threads: Vec::new(),
+
             state,
             config,
-
-            tcp_threads: Vec::new(),
         }
     }
 
@@ -84,15 +90,17 @@ impl Master {
     pub fn run(mut self) -> Result<Self, String> {
         let listener = TcpListener::bind(self.config.tcp_addr).map_err(|e| e.to_string())?;
         listener.set_nonblocking(true).map_err(|e| e.to_string())?;
-
+        let shell = MasterStateShell::new(self.state.clone());
         loop {
-            if *self.state.shutdown.read().unwrap() {
-                break;
+            if let Ok(shutdown) = shell.shutdown() {
+                if **shutdown.get() {
+                    break;
+                }
             }
 
             match listener.accept() {
                 Ok((stream, _)) => {
-                    if let Ok(tcp_worker) = TcpWorker::new(stream, Arc::clone(&self.state)) {
+                    if let Ok(tcp_worker) = TcpWorker::new(stream, self.state.clone()) {
                         let tcp_thread = thread::spawn(move || tcp_worker.run());
                         self.tcp_threads.push(tcp_thread);
                     } else {
@@ -109,14 +117,20 @@ impl Master {
                 }
             }
             if let Ok(stock) = self.rx_stock.try_recv() {
-                if let Ok(mut distributor) = self.state.distributor.lock() {
-                    distributor.send_all(stock);
+                if let Ok(mut distributor) = shell.distributor() {
+                    distributor.get_mut().send_all(stock);
                 }
             }
         }
 
-        let mut all_connections = self.state.connections.lock().map_err(|e| e.to_string())?;
-        let mut distributor = self.state.distributor.lock().map_err(|e| e.to_string())?;
+        let (Ok(mut all_connections_guard), Ok(mut distributor_guard)) =
+            (shell.connections(), shell.distributor())
+        else {
+            return Err("Internal error".to_string());
+        };
+        let all_connections = all_connections_guard.get_mut();
+        let distributor = distributor_guard.get_mut();
+
         let domens: Vec<SocketAddr> = all_connections.keys().cloned().collect();
         let mut threads = Vec::new();
 
@@ -146,9 +160,6 @@ impl Master {
                 }
             }
         }
-
-        drop(all_connections);
-        drop(distributor);
 
         Ok(self)
     }
