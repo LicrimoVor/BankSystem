@@ -1,7 +1,8 @@
 use super::{Extractor, SLEEP_TIME};
-use crate::types::stock::{StockQuote, Ticker};
-#[cfg(feature = "logging")]
-use log::{info, warn};
+use crate::{
+    logging,
+    types::stock::{StockQuote, Ticker},
+};
 use std::{
     sync::mpsc::{Receiver, Sender},
     time,
@@ -26,13 +27,11 @@ impl RandomExtractor {
 
 impl Extractor for RandomExtractor {
     fn run(self: Box<Self>) -> Result<(), String> {
-        #[cfg(feature = "logging")]
-        info!("RandomExtractor запущен");
+        logging!(info, ("RandomExtractor запущен"));
 
         loop {
             let Ok(timestamp) = time::SystemTime::now().duration_since(time::UNIX_EPOCH) else {
-                #[cfg(feature = "logging")]
-                warn!("Невозможно получить время");
+                logging!(warn, ("Невозможно получить время"));
                 continue;
             };
             let indx = rand::random_range(0..10);
@@ -45,13 +44,11 @@ impl Extractor for RandomExtractor {
                 volume: rand::random(),
             };
 
-            // #[cfg(feature = "logging")]
-            // info!("Extractor: {:?}", quote);
+            // logging!(info, ("Extractor: {:?}", quote));
 
             for tx in self.subscribers.iter() {
                 if let Err(_e) = tx.send(quote.clone()) {
-                    #[cfg(feature = "logging")]
-                    warn!("Extractor: Ошибка при отправке: {}", _e);
+                    logging!(warn, ("Extractor: Ошибка при отправке: {}", _e));
                 };
             }
             std::thread::sleep(SLEEP_TIME);

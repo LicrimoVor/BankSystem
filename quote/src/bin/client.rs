@@ -1,6 +1,4 @@
 use clap::{Parser, command};
-#[cfg(feature = "logging")]
-use log::info;
 use quote::{
     client::ClientQuote,
     types::{message::UdpMessage, stock::Ticker},
@@ -27,7 +25,6 @@ fn main() {
     #[cfg(feature = "logging")]
     {
         use log::info;
-
         env_logger::init();
         info!("Логирование инициализировано");
     }

@@ -1,13 +1,12 @@
 use crate::{
     distributor::Distributor,
+    logging,
     tcp_worker::TcpWorker,
     types::{
         state::{MasterState, MasterStateShell},
         stock::StockQuote,
     },
 };
-#[cfg(feature = "logging")]
-use log::{info, warn};
 use std::{
     collections::HashMap,
     io,
@@ -104,16 +103,14 @@ impl Master {
                         let tcp_thread = thread::spawn(move || tcp_worker.run());
                         self.tcp_threads.push(tcp_thread);
                     } else {
-                        #[cfg(feature = "logging")]
-                        warn!("Connection failed");
+                        logging!(warn, ("Connection failed"));
                     };
                 }
                 Err(e) if e.kind() == io::ErrorKind::WouldBlock => {
                     thread::sleep(Duration::from_micros(100));
                 }
                 Err(_e) => {
-                    #[cfg(feature = "logging")]
-                    warn!("Connection failed: {}", _e.to_string());
+                    logging!(warn, ("Connection failed: {}", _e.to_string()));
                 }
             }
             if let Ok(stock) = self.rx_stock.try_recv() {
@@ -147,16 +144,13 @@ impl Master {
         for (_id, thread) in threads {
             match thread.join() {
                 Ok(Ok(())) => {
-                    #[cfg(feature = "logging")]
-                    info!("Поток {} успешно завершился", _id);
+                    logging!(warn, ("Поток {} успешно завершился", _id));
                 }
                 Ok(Err(_e)) => {
-                    #[cfg(feature = "logging")]
-                    warn!("Поток {} завершился с ошибкой: {}", _id, _e);
+                    logging!(warn, ("Поток {} завершился с ошибкой: {}", _id, _e));
                 }
                 Err(_e) => {
-                    #[cfg(feature = "logging")]
-                    warn!("Поток {} запаниковал - {:#?}", _id, _e);
+                    logging!(warn, ("Поток {} запаниковал - {:#?}", _id, _e));
                 }
             }
         }

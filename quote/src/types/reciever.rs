@@ -1,9 +1,10 @@
-use crate::types::{
-    message::{UdpMessage, UdpMessageFormat},
-    stock::Ticker,
+use crate::{
+    logging,
+    types::{
+        message::{UdpMessage, UdpMessageFormat},
+        stock::Ticker,
+    },
 };
-#[cfg(feature = "logging")]
-use log::{info, warn};
 use std::{
     io::{self},
     net::{SocketAddr, UdpSocket},
@@ -44,19 +45,15 @@ impl RecieverQuote {
         shutdown: Arc<RwLock<bool>>,
     ) -> Result<(Self, Receiver<UdpMessage>), String> {
         let Ok(socket) = UdpSocket::bind(addr) else {
-            #[cfg(feature = "logging")]
-            warn!("Не удалось создать сокет");
-
+            logging!(warn, ("Не удалось создать сокет"));
             return Err("Не удалось создать сокет".to_string());
         };
         if let Err(_e) = socket.set_read_timeout(Some(READ_TIMEOUT)) {
-            #[cfg(feature = "logging")]
-            warn!("Не удалось установить таймаут: {}", _e);
+            logging!(warn, ("Не удалось установить таймаут: {}", _e));
         };
 
         if let Err(_e) = socket.set_nonblocking(false) {
-            #[cfg(feature = "logging")]
-            warn!("Не удалось установить nonblocking: {}", _e);
+            logging!(warn, ("Не удалось установить nonblocking: {}", _e));
         };
         let (sender, receiver) = std::sync::mpsc::channel();
         let format = format.unwrap_or(UdpMessageFormat::Json);
@@ -91,20 +88,17 @@ impl RecieverQuote {
                         let _ = self.sender.send(UdpMessage::Init(last_stocks));
                         Some(server)
                     } else {
-                        #[cfg(feature = "logging")]
-                        warn!("Не удалось получить данные");
+                        logging!(warn, ("Не удалось получить данные"));
                         return Err("Не удалось получить данные".to_string());
                     }
                 }
                 Err(e) => {
-                    #[cfg(feature = "logging")]
-                    warn!("Не удалось получить данные: {}", e);
+                    logging!(warn, ("Не удалось получить данные: {}", e));
                     return Err(e.to_string());
                 }
             },
             Err(e) => {
-                #[cfg(feature = "logging")]
-                warn!("Не удалось получить данные: {}", e);
+                logging!(warn, ("Не удалось получить данные: {}", e));
                 return Err(e.to_string());
             }
         };
@@ -112,8 +106,7 @@ impl RecieverQuote {
         loop {
             let mut buf = [0u8; 1024];
             let Ok(shutdown) = self.shutdown.read().map(|s| *s) else {
-                #[cfg(feature = "logging")]
-                warn!("Не удалось получить shutdown");
+                logging!(warn, ("Не удалось получить shutdown"));
                 continue;
             };
 
@@ -126,8 +119,7 @@ impl RecieverQuote {
                 Ok(n) => match UdpMessage::from_format(&buf[..n], &self.format) {
                     Ok(msg) => self.message_handle(msg),
                     Err(_e) => {
-                        #[cfg(feature = "logging")]
-                        warn!("Ошибка преобразования: {}", _e);
+                        logging!(warn, ("Ошибка преобразования: {}", _e));
                     }
                 },
                 Err(e)
@@ -139,15 +131,13 @@ impl RecieverQuote {
                     self.count_timeout += 1;
                     if self.count_timeout >= COUNT_TIMEOUT {
                         self.reconnect();
-                        #[cfg(feature = "logging")]
-                        warn!("Reconnect");
+                        logging!(warn, ("Reconnect"));
                     }
                 }
                 Err(_e) => {
                     self.reconnect();
                     self.keepalive();
-                    #[cfg(feature = "logging")]
-                    warn!("{}", _e);
+                    logging!(warn, ("{}", _e));
                 }
             }
 
@@ -162,19 +152,16 @@ impl RecieverQuote {
         self.socket = match UdpSocket::bind(self.addr) {
             Ok(s) => s,
             Err(_e) => {
-                #[cfg(feature = "logging")]
-                warn!("{}", _e);
+                logging!(warn, ("{}", _e));
                 return;
             }
         };
         if let Err(_e) = self.socket.set_read_timeout(Some(READ_TIMEOUT)) {
-            #[cfg(feature = "logging")]
-            warn!("{}", _e);
+            logging!(warn, ("{}", _e));
         };
 
         if let Err(_e) = self.socket.set_nonblocking(true) {
-            #[cfg(feature = "logging")]
-            warn!("{}", _e);
+            logging!(warn, ("{}", _e));
         };
     }
 
@@ -196,8 +183,7 @@ impl RecieverQuote {
                     let latency = instant.elapsed().as_millis();
                     if latency > self.latency {
                         self.latency = latency;
-                        #[cfg(feature = "logging")]
-                        info!("Latency: {}", self.latency);
+                        logging!(info, ("Latency: {}", self.latency));
                     }
                 }
             }
@@ -210,8 +196,7 @@ impl RecieverQuote {
 
         if let Ok(ping) = UdpMessage::Ping.to_format(&self.format) {
             if let Err(_e) = self.socket.send_to(&ping, self.server.unwrap()) {
-                #[cfg(feature = "logging")]
-                warn!("Ошибка отправки ping: {}", _e);
+                logging!(warn, ("Ошибка отправки ping: {}", _e));
             };
         };
     }

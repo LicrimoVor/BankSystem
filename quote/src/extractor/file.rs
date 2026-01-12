@@ -1,7 +1,8 @@
 use super::{Extractor, SLEEP_TIME};
-use crate::types::stock::{StockQuote, Ticker};
-#[cfg(feature = "logging")]
-use log::{info, warn};
+use crate::{
+    logging,
+    types::stock::{StockQuote, Ticker},
+};
 use std::{
     fs::File,
     io::Read,
@@ -19,8 +20,7 @@ impl FileMockExtractor {
     pub fn new(mut file: File) -> Self {
         let mut text = String::new();
         if let Err(_e) = file.read_to_string(&mut text) {
-            #[cfg(feature = "logging")]
-            warn!("Невозможно прочитать файл: {}", _e);
+            logging!(warn, ("Невозможно прочитать файл: {}", _e));
         };
 
         let tickers: Vec<Ticker> = text
@@ -38,15 +38,13 @@ impl FileMockExtractor {
 
 impl Extractor for FileMockExtractor {
     fn run(self: Box<Self>) -> Result<(), String> {
-        #[cfg(feature = "logging")]
-        info!("FileMockExtractor запущен");
+        logging!(info, ("FileMockExtractor запущен"));
         let count = self.tickers.len();
         let mut indx: usize = 0;
 
         loop {
             let Ok(timestamp) = time::SystemTime::now().duration_since(time::UNIX_EPOCH) else {
-                #[cfg(feature = "logging")]
-                warn!("Невозможно получить время");
+                logging!(warn, ("Невозможно получить время"));
                 continue;
             };
 
@@ -62,8 +60,7 @@ impl Extractor for FileMockExtractor {
 
             for tx in self.subscribers.iter() {
                 if let Err(_e) = tx.send(quote.clone()) {
-                    #[cfg(feature = "logging")]
-                    warn!("Extractor: Ошибка при отправке: {}", _e);
+                    logging!(warn, ("Extractor: Ошибка при отправке: {}", _e));
                 };
             }
             std::thread::sleep(SLEEP_TIME);

@@ -1,7 +1,8 @@
-use crate::types::stock::{StockQuote, Ticker};
+use crate::{
+    logging,
+    types::stock::{StockQuote, Ticker},
+};
 use crossbeam::channel;
-#[cfg(feature = "logging")]
-use log::info;
 use std::{collections::HashMap, sync::Arc};
 
 /// Событие для подписчиков
@@ -65,8 +66,7 @@ impl Distributor {
         let id = self.__count;
         self.__count += 1;
 
-        #[cfg(feature = "logging")]
-        info!("Подписка на акции {:?}. id: {}", tickers, id);
+        logging!(info, ("Подписка на акции {:?}. id: {}", tickers, id));
 
         let (sender, receiver) = channel::bounded(1024);
         let sender = Arc::new(sender);
@@ -86,8 +86,7 @@ impl Distributor {
 
     /// Отписаться от отслеживания акции
     pub fn unsubscribe(&mut self, id: u32) {
-        #[cfg(feature = "logging")]
-        info!("Отпика от акций id: {}", id);
+        logging!(info, ("Отпика от акций id: {}", id));
 
         if let Some(SenderTicker(sender, tickers)) = self.subscribers.remove(&id) {
             let _ = sender.send(Event::Disconnect);
@@ -108,9 +107,7 @@ impl Distributor {
 
     /// Отправить новые данные о акции
     pub fn send_all(&mut self, stock: StockQuote) {
-        #[cfg(feature = "logging")]
-        info!("Отправляем акцию: {:?}", &stock);
-
+        logging!(info, ("Отправляем акцию: {:?}", &stock));
         self.last_stocks.insert(stock.ticker.clone(), stock.clone());
 
         if let Some(senders) = self.ticker_senders.get(&stock.ticker) {

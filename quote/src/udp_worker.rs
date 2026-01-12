@@ -1,8 +1,6 @@
-#[cfg(feature = "logging")]
-use log::{error, info, warn};
-
 use crate::{
     distributor::{Event, Subscriber},
+    logging,
     types::{
         message::{UdpMessage, UdpMessageFormat},
         stock::StockQuote,
@@ -39,9 +37,7 @@ impl UdpWorker {
             .set_read_timeout(Some(DURATION_TIMEOUT))
             .map_err(|_| "Not set timeout".to_string())?;
 
-        #[cfg(feature = "logging")]
-        info!("SubscribeWorker running: {}", addr);
-
+        logging!(info, ("SubscribeWorker running: {}", addr));
         let format = format.unwrap_or(UdpMessageFormat::Json);
 
         Ok(Self {
@@ -67,8 +63,7 @@ impl UdpWorker {
                     Event::Disconnect => {
                         self.send(UdpMessage::Disconnect);
 
-                        #[cfg(feature = "logging")]
-                        info!("SubscribeWorker Disconnect: {}", self.addr);
+                        logging!(info, ("SubscribeWorker Disconnect: {}", self.addr));
 
                         break Ok(());
                     }
@@ -87,8 +82,7 @@ impl UdpWorker {
                         }
                     }
                     Err(_e) => {
-                        #[cfg(feature = "logging")]
-                        warn!("Error parse message: {}", _e);
+                        logging!(warn, ("Error parse message: {}", _e));
                     }
                 },
                 Err(e)
@@ -98,8 +92,7 @@ impl UdpWorker {
                     ()
                 }
                 Err(_e) => {
-                    #[cfg(feature = "logging")]
-                    warn!("Error connection: {}", _e);
+                    logging!(warn, ("Error connection: {}", _e));
                     self.count += 1;
                 }
             };
@@ -109,14 +102,11 @@ impl UdpWorker {
     /// Отправить сообщение
     fn send(&mut self, message: UdpMessage) {
         let Ok(mes) = message.to_format(&self.format) else {
-            #[cfg(feature = "logging")]
-            error!("Error format message");
-
+            logging!(error, ("Error format message"));
             return;
         };
         if let Err(_e) = self.socket.send_to(mes.as_slice(), self.addr) {
-            #[cfg(feature = "logging")]
-            error!("Error send message: {}", _e);
+            logging!(error, ("Error send message: {}", _e));
             self.count += 1;
         } else {
             self.count = 0;

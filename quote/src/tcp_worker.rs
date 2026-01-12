@@ -1,4 +1,5 @@
 use crate::{
+    logging,
     master::Connection,
     types::{
         command::TcpCommand,
@@ -8,8 +9,6 @@ use crate::{
     },
     udp_worker::UdpWorker,
 };
-#[cfg(feature = "logging")]
-use log::{info, warn};
 use std::{
     io::{BufRead, BufReader, Write},
     net::TcpStream,
@@ -37,14 +36,12 @@ impl TcpWorker {
         stream.set_nodelay(true).map_err(|e| e.to_string())?;
 
         let Ok(domen) = stream.peer_addr() else {
-            #[cfg(feature = "logging")]
-            warn!("Connection failed");
+            logging!(warn, ("Connection failed"));
 
             return Err("Connection failed".to_string());
         };
 
-        #[cfg(feature = "logging")]
-        info!("Tcp worker created: {}", domen);
+        logging!(info, ("Tcp worker created: {}", domen));
 
         Ok(Self {
             stream,
@@ -57,8 +54,7 @@ impl TcpWorker {
 
     /// Запускает tcp worker
     pub(crate) fn run(mut self) -> Result<Self, String> {
-        #[cfg(feature = "logging")]
-        info!("TcpWorker running: {}", self.domen);
+        logging!(info, ("TcpWorker running: {}", self.domen));
 
         let mut reader = BufReader::new(self.stream.try_clone().map_err(|e| e.to_string())?);
         let mut shutdown = false;
@@ -88,8 +84,7 @@ impl TcpWorker {
                     continue;
                 }
                 Err(_e) => {
-                    #[cfg(feature = "logging")]
-                    warn!("Error read: {:?}", _e);
+                    logging!(warn, ("Error read: {:?}", _e));
 
                     self.count += 1;
                     let answ = QuoteError::InternalError.to_string();
@@ -105,8 +100,7 @@ impl TcpWorker {
         buffer: &mut String,
         shell: &MasterStateShell,
     ) -> Result<(), QuoteError> {
-        #[cfg(feature = "logging")]
-        info!("Command tcp: {:?}", buffer);
+        logging!(info, ("Command tcp: {:?}", buffer));
         let res: Result<String, QuoteError> = match TcpCommand::parse(buffer) {
             Ok(command) => match command {
                 TcpCommand::Stream((socket, tickers)) => {
@@ -129,9 +123,7 @@ impl TcpWorker {
         let answer = format!("{}\n", answer);
 
         if let Err(_e) = self.stream.write_all(&answer.into_bytes()) {
-            #[cfg(feature = "logging")]
-            warn!("Error write: {}", _e);
-
+            logging!(warn, ("Error write: {}", _e));
             return Err(QuoteError::NotConnection);
         };
 
@@ -171,8 +163,7 @@ impl TcpWorker {
         let worker = match UdpWorker::new(subscriber, socket, None) {
             Ok(worker) => worker,
             Err(_e) => {
-                #[cfg(feature = "logging")]
-                warn!("{}: Connection failed: {}", socket, _e.to_string());
+                logging!(info, ("{}: Connection failed: {}", socket, _e.to_string()));
                 return Err(QuoteError::NotConnection);
             }
         };
