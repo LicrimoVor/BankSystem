@@ -47,6 +47,7 @@ impl MetricsReceiver {
 
         loop {
             debug!("Ожидание данных...");
+
             match self.socket.recv_from(&mut buf) {
                 Ok((size, src_addr)) => match bincode::deserialize::<RoomMetrics>(&buf[..size]) {
                     Ok(metrics) => {
