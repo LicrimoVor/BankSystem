@@ -14,13 +14,10 @@ macro_rules! state_accessor {
         #[doc = "### Получение guard версии поля мастера"]
         pub(crate) fn $name(
             &self,
-        ) -> Result<
-            ValueGuard<
-                std::sync::MutexGuard<'_, $type>,
-                Rc<RefCell<Vec<u8>>>,
-                impl FnOnce(Rc<RefCell<Vec<u8>>>),
-            >,
-            QuoteError,
+        ) -> ValueGuard<
+            parking_lot::MutexGuard<'_, $type>,
+            Rc<RefCell<Vec<u8>>>,
+            impl FnOnce(Rc<RefCell<Vec<u8>>>),
         > {
             #[cfg(feature = "checking")]
             if !self.can_get($id) {
@@ -34,17 +31,9 @@ macro_rules! state_accessor {
                 self.queue.borrow_mut().push($id);
             }
 
-            let value = self
-                .state
-                .$field
-                .lock()
-                .map_err(|_| QuoteError::InternalError)?;
+            let value = self.state.$field.lock();
 
-            Ok(ValueGuard::new(
-                value,
-                self.queue.clone(),
-                gen_callback($id),
-            ))
+            ValueGuard::new(value, self.queue.clone(), gen_callback($id))
         }
     };
 
@@ -60,13 +49,10 @@ macro_rules! state_accessor {
         #[doc = "### Получение guard версии поля мастера"]
         pub(crate) fn $name(
             &self,
-        ) -> Result<
-            ValueGuard<
-                std::sync::RwLockReadGuard<'_, $type>,
-                Rc<RefCell<Vec<u8>>>,
-                impl FnOnce(Rc<RefCell<Vec<u8>>>),
-            >,
-            QuoteError,
+        ) -> ValueGuard<
+            parking_lot::RwLockReadGuard<'_, $type>,
+            Rc<RefCell<Vec<u8>>>,
+            impl FnOnce(Rc<RefCell<Vec<u8>>>),
         > {
             #[cfg(feature = "checking")]
             if !self.can_get($id) {
@@ -80,28 +66,18 @@ macro_rules! state_accessor {
                 self.queue.borrow_mut().push($id);
             }
 
-            let value = self
-                .state
-                .$field
-                .read()
-                .map_err(|_| QuoteError::InternalError)?;
+            let value = self.state.$field.read();
 
-            Ok(ValueGuard::new(
-                value,
-                self.queue.clone(),
-                gen_callback($id),
-            ))
+            ValueGuard::new(value, self.queue.clone(), gen_callback($id))
         }
 
+        #[doc = "### Получение guard версии поля мастера"]
         pub(crate) fn $name_mut(
             &self,
-        ) -> Result<
-            ValueGuard<
-                std::sync::RwLockWriteGuard<'_, $type>,
-                Rc<RefCell<Vec<u8>>>,
-                impl FnOnce(Rc<RefCell<Vec<u8>>>),
-            >,
-            QuoteError,
+        ) -> ValueGuard<
+            parking_lot::RwLockWriteGuard<'_, $type>,
+            Rc<RefCell<Vec<u8>>>,
+            impl FnOnce(Rc<RefCell<Vec<u8>>>),
         > {
             #[cfg(feature = "checking")]
             if !self.can_get($id) {
@@ -115,17 +91,9 @@ macro_rules! state_accessor {
                 self.queue.borrow_mut().push($id);
             }
 
-            let value = self
-                .state
-                .$field
-                .write()
-                .map_err(|_| QuoteError::InternalError)?;
+            let value = self.state.$field.write();
 
-            Ok(ValueGuard::new(
-                value,
-                self.queue.clone(),
-                gen_callback($id),
-            ))
+            ValueGuard::new(value, self.queue.clone(), gen_callback($id))
         }
     };
 }

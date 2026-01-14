@@ -1,3 +1,5 @@
+use parking_lot::RwLock;
+
 use crate::{
     logging,
     types::{
@@ -9,14 +11,15 @@ use std::{
     io::{self},
     net::{SocketAddr, UdpSocket},
     sync::{
-        Arc, RwLock,
+        Arc,
         mpsc::{Receiver, Sender},
     },
     thread,
 };
 
-const READ_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(5);
-const TIME_SLEEP: std::time::Duration = std::time::Duration::from_millis(1000);
+const DURATION_TIMEOUT: std::time::Duration = std::time::Duration::from_millis(200);
+const TIME_SLEEP: std::time::Duration = std::time::Duration::from_millis(200);
+const PING_INTERVAL: std::time::Duration = std::time::Duration::from_millis(500);
 const COUNT_RECONNECT: u8 = 5;
 const COUNT_TIMEOUT: u8 = 10;
 
@@ -31,8 +34,7 @@ pub(crate) struct RecieverQuote {
 
     count_reconnect: u8,
     count_timeout: u8,
-    latency: u128,
-    time_instant: Option<std::time::Instant>,
+    ping_interval: std::time::Instant,
 
     shutdown: Arc<RwLock<bool>>,
 }
@@ -48,7 +50,7 @@ impl RecieverQuote {
             logging!(warn, ("Не удалось создать сокет"));
             return Err("Не удалось создать сокет".to_string());
         };
-        if let Err(_e) = socket.set_read_timeout(Some(READ_TIMEOUT)) {
+        if let Err(_e) = socket.set_read_timeout(Some(DURATION_TIMEOUT)) {
             logging!(warn, ("Не удалось установить таймаут: {}", _e));
         };
 
@@ -70,8 +72,7 @@ impl RecieverQuote {
 
                 count_reconnect: 0,
                 count_timeout: 0,
-                latency: 1000,
-                time_instant: None,
+                ping_interval: std::time::Instant::now(),
 
                 shutdown,
             },
@@ -105,14 +106,14 @@ impl RecieverQuote {
 
         loop {
             let mut buf = [0u8; 1024];
-            let Ok(shutdown) = self.shutdown.read().map(|s| *s) else {
-                logging!(warn, ("Не удалось получить shutdown"));
-                continue;
-            };
-
-            if shutdown {
+            if *self.shutdown.read() {
                 self.message_handle(UdpMessage::Disconnect);
                 break Ok(self);
+            }
+
+            if (std::time::Instant::now() - self.ping_interval) > PING_INTERVAL {
+                self.keepalive();
+                self.count_timeout += 1;
             }
 
             match self.socket.recv(&mut buf) {
@@ -127,7 +128,6 @@ impl RecieverQuote {
                         || e.kind() == io::ErrorKind::TimedOut =>
                 {
                     thread::sleep(TIME_SLEEP);
-                    self.keepalive();
                     self.count_timeout += 1;
                     if self.count_timeout >= COUNT_TIMEOUT {
                         self.reconnect();
@@ -136,12 +136,12 @@ impl RecieverQuote {
                 }
                 Err(_e) => {
                     self.reconnect();
-                    self.keepalive();
                     logging!(warn, ("{}", _e));
                 }
             }
 
             if self.count_reconnect >= COUNT_RECONNECT {
+                logging!(warn, ("Server not response. Client closed"));
                 break Err("Reconnect failed".to_string());
             }
         }
@@ -152,16 +152,16 @@ impl RecieverQuote {
         self.socket = match UdpSocket::bind(self.addr) {
             Ok(s) => s,
             Err(_e) => {
-                logging!(warn, ("{}", _e));
+                logging!(warn, ("Recconect failed: {}", _e));
                 return;
             }
         };
-        if let Err(_e) = self.socket.set_read_timeout(Some(READ_TIMEOUT)) {
-            logging!(warn, ("{}", _e));
+        if let Err(_e) = self.socket.set_read_timeout(Some(DURATION_TIMEOUT)) {
+            logging!(warn, ("Не удалось установить таймаут: {}", _e));
         };
 
         if let Err(_e) = self.socket.set_nonblocking(true) {
-            logging!(warn, ("{}", _e));
+            logging!(warn, ("Не удалось установить nonblocking: {}", _e));
         };
     }
 
@@ -170,32 +170,36 @@ impl RecieverQuote {
         self.count_timeout = 0;
         match message {
             UdpMessage::Init(stocks) => {
-                self.sender.send(UdpMessage::Init(stocks)).unwrap();
+                if let Err(e) = self.sender.send(UdpMessage::Init(stocks)) {
+                    logging!(warn, ("Send init failed: {}", e));
+                };
             }
             UdpMessage::Stock(stock) => {
-                self.sender.send(UdpMessage::Stock(stock)).unwrap();
+                if let Err(e) = self.sender.send(UdpMessage::Stock(stock)) {
+                    logging!(warn, ("Send stock failed: {}", e));
+                };
             }
             UdpMessage::Disconnect => {
-                self.sender.send(UdpMessage::Disconnect).unwrap();
+                if let Err(e) = self.sender.send(UdpMessage::Disconnect) {
+                    logging!(warn, ("Send disconnect failed: {}", e));
+                };
+            }
+            UdpMessage::Pong => {
+                logging!(info, ("Pong recv: {}", self.addr));
+                self.ping_interval = std::time::Instant::now();
             }
             UdpMessage::Ping => {
-                if let Some(instant) = self.time_instant {
-                    let latency = instant.elapsed().as_millis();
-                    if latency > self.latency {
-                        self.latency = latency;
-                        logging!(info, ("Latency: {}", self.latency));
-                    }
-                }
+                logging!(info, ("Ping recv: {}", self.addr));
+                self.ping_interval = std::time::Instant::now();
             }
             _ => (),
         }
     }
 
     fn keepalive(&mut self) {
-        self.time_instant = Some(std::time::Instant::now());
-
-        if let Ok(ping) = UdpMessage::Ping.to_format(&self.format) {
-            if let Err(_e) = self.socket.send_to(&ping, self.server.unwrap()) {
+        if let (Some(server), Ok(ping)) = (self.server, UdpMessage::Ping.to_format(&self.format)) {
+            logging!(info, ("Ping send: {}", self.addr));
+            if let Err(_e) = self.socket.send_to(&ping, server) {
                 logging!(warn, ("Ошибка отправки ping: {}", _e));
             };
         };

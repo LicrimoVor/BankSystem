@@ -91,8 +91,9 @@ impl Master {
         listener.set_nonblocking(true).map_err(|e| e.to_string())?;
         let shell = MasterStateShell::new(self.state.clone());
         loop {
-            if let Ok(shutdown) = shell.shutdown() {
-                if **shutdown.get() {
+            {
+                let shutdown_guard = shell.shutdown();
+                if **shutdown_guard.get() {
                     break;
                 }
             }
@@ -114,17 +115,14 @@ impl Master {
                 }
             }
             if let Ok(stock) = self.rx_stock.try_recv() {
-                if let Ok(mut distributor) = shell.distributor() {
-                    distributor.get_mut().send_all(stock);
-                }
+                let mut distributor_guard = shell.distributor();
+                distributor_guard.get_mut().send_all(stock);
             }
         }
 
-        let (Ok(mut all_connections_guard), Ok(mut distributor_guard)) =
-            (shell.connections(), shell.distributor())
-        else {
-            return Err("Internal error".to_string());
-        };
+        let mut all_connections_guard = shell.connections();
+        let mut distributor_guard = shell.distributor();
+
         let all_connections = all_connections_guard.get_mut();
         let distributor = distributor_guard.get_mut();
 

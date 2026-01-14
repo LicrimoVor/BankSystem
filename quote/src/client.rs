@@ -1,3 +1,5 @@
+use parking_lot::RwLock;
+
 use crate::{
     logging,
     types::{
@@ -9,7 +11,7 @@ use std::{
     collections::HashMap,
     io::{BufRead, BufReader, Write},
     net::{SocketAddr, TcpStream},
-    sync::{Arc, RwLock, mpsc::Receiver},
+    sync::{Arc, mpsc::Receiver},
     thread::{self, JoinHandle},
 };
 
@@ -58,7 +60,7 @@ impl ClientQuote {
 
         if let Err(answ) = self.send_socket(TcpCommand::Stream((addr, tickers))) {
             logging!(debug, ("Error create reciever: {:?}", answ));
-            let mut shutdown = shutdown.write().unwrap();
+            let mut shutdown = shutdown.write();
             *shutdown = true;
 
             match reciever_join.join() {
@@ -82,9 +84,7 @@ impl ClientQuote {
         let Some((reciever_join, shutdown)) = self.recievers.remove(&id) else {
             return Err("Reciever not found".to_string());
         };
-        let Ok(mut shutdown) = shutdown.write() else {
-            return Err("Shutdown failed".to_string());
-        };
+        let mut shutdown = shutdown.write();
         *shutdown = true;
         let receiver = reciever_join.join().map_err(|e| format!("{:?}", e))??;
 

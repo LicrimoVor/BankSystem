@@ -60,14 +60,19 @@ impl TcpWorker {
         let mut shutdown = false;
         let shell = MasterStateShell::new(self.state.clone());
         loop {
-            if let Ok(shutdown_guard) = shell.shutdown() {
+            {
+                let shutdown_guard = shell.shutdown();
                 if **shutdown_guard.get() {
                     shutdown = true;
                 }
+                if shutdown {
+                    let _ = self.stream.write_all("Finish\n".as_bytes());
+                    break Ok(self);
+                }
             }
-            if shutdown {
-                let _ = self.stream.write_all("Finish\n".as_bytes());
-                break Ok(self);
+
+            if self.count >= COUNT_TRY_SEND {
+                break Err("Client not response".to_string());
             }
 
             let mut buf = String::new();
@@ -79,11 +84,15 @@ impl TcpWorker {
                     self.count = 0;
                     let _ = self.tcp_handle(&mut buf, &shell);
                 }
-                Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                Err(e)
+                    if e.kind() == std::io::ErrorKind::WouldBlock
+                        || e.kind() == std::io::ErrorKind::TimedOut =>
+                {
                     std::thread::sleep(DURATION_SLEEP);
                     continue;
                 }
                 Err(_e) => {
+                    std::thread::sleep(DURATION_SLEEP);
                     logging!(warn, ("Error read: {:?}", _e));
 
                     self.count += 1;
@@ -138,11 +147,9 @@ impl TcpWorker {
         tickers: Vec<Ticker>,
         shell: &MasterStateShell,
     ) -> Result<String, QuoteError> {
-        let (Ok(mut all_connections_guard), Ok(mut distributor_guard)) =
-            (shell.connections(), shell.distributor())
-        else {
-            return Err(QuoteError::InternalError);
-        };
+        let mut all_connections_guard = shell.connections();
+        let mut distributor_guard = shell.distributor();
+
         let all_connections = all_connections_guard.get_mut();
         let distributor = distributor_guard.get_mut();
 
@@ -181,11 +188,9 @@ impl TcpWorker {
         socket: SocketAddr,
         shell: &MasterStateShell,
     ) -> Result<String, QuoteError> {
-        let (Ok(mut all_connections_guard), Ok(mut distributor_guard)) =
-            (shell.connections(), shell.distributor())
-        else {
-            return Err(QuoteError::InternalError);
-        };
+        let mut all_connections_guard = shell.connections();
+        let mut distributor_guard = shell.distributor();
+
         let all_connections = all_connections_guard.get_mut();
         let distributor = distributor_guard.get_mut();
 
@@ -205,9 +210,8 @@ impl TcpWorker {
     }
 
     fn command_list(&self, shell: &MasterStateShell) -> Result<String, QuoteError> {
-        let Ok(all_connections_guard) = shell.connections() else {
-            return Err(QuoteError::InternalError);
-        };
+        let all_connections_guard = shell.connections();
+
         let Some(connections) = all_connections_guard.get().get(&self.domen) else {
             return Err(QuoteError::NotFound);
         };
@@ -219,11 +223,8 @@ impl TcpWorker {
     }
 
     fn command_disconnect(&mut self, shell: &MasterStateShell) -> Result<String, QuoteError> {
-        let (Ok(mut all_connections_guard), Ok(mut distributor_guard)) =
-            (shell.connections(), shell.distributor())
-        else {
-            return Err(QuoteError::InternalError);
-        };
+        let mut all_connections_guard = shell.connections();
+        let mut distributor_guard = shell.distributor();
 
         let Some(connections) = all_connections_guard.get_mut().remove(&self.domen) else {
             return Err(QuoteError::NotFound);
@@ -236,9 +237,7 @@ impl TcpWorker {
     }
 
     fn command_tickers(&self, shell: &MasterStateShell) -> Result<String, QuoteError> {
-        let Ok(distributor_guard) = shell.distributor() else {
-            return Err(QuoteError::InternalError);
-        };
+        let distributor_guard = shell.distributor();
         let distributor = distributor_guard.get();
         if distributor.get_tickers().is_empty() {
             return Err(QuoteError::NotFound);
@@ -263,17 +262,11 @@ help - список комманд"
         key: String,
         shell: &MasterStateShell,
     ) -> Result<String, QuoteError> {
-        let Ok(secret_key_guard) = shell.secret_key() else {
-            return Err(QuoteError::InternalError);
-        };
-
+        let secret_key_guard = shell.secret_key();
         if key == **secret_key_guard.get() {
             drop(secret_key_guard);
 
-            let Ok(mut shutdown_guard) = shell.shutdown_mut() else {
-                return Err(QuoteError::InternalError);
-            };
-
+            let mut shutdown_guard = shell.shutdown_mut();
             let shutdown = shutdown_guard.get_mut();
             **shutdown = true;
             return Ok("Shutdown".to_string());

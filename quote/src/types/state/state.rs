@@ -1,16 +1,7 @@
 use super::guard::ValueGuard;
-use crate::{
-    distributor::Distributor, master::Connection, state_accessor, types::error::QuoteError,
-};
-#[cfg(feature = "logging")]
-use log::{info, warn};
-use std::{
-    cell::RefCell,
-    collections::HashMap,
-    net::SocketAddr,
-    rc::Rc,
-    sync::{Arc, Mutex, RwLock},
-};
+use crate::{distributor::Distributor, master::Connection, state_accessor};
+use parking_lot::{Mutex, RwLock};
+use std::{cell::RefCell, collections::HashMap, net::SocketAddr, rc::Rc, sync::Arc};
 
 /// Стейт мастера севера
 pub(crate) struct MasterState {
@@ -63,13 +54,6 @@ impl MasterStateShell {
                 state,
                 queue: Rc::new(RefCell::new(Vec::new())),
             }
-        }
-    }
-
-    pub(crate) fn clone(&self) -> Self {
-        Self {
-            state: self.state.clone(),
-            queue: Rc::new(RefCell::new(Vec::new())),
         }
     }
 
@@ -136,10 +120,10 @@ mod tests {
         let state = make_state();
         let shell = MasterStateShell::new(state);
 
-        let _connections = shell.connections().unwrap(); // 1
-        let _distributor = shell.distributor().unwrap(); // 2
-        let _shutdown = shell.shutdown().unwrap(); // 3
-        let _secret = shell.secret_key().unwrap(); // 4
+        let _connections = shell.connections(); // 1
+        let _distributor = shell.distributor(); // 2
+        let _shutdown = shell.shutdown(); // 3
+        let _secret = shell.secret_key(); // 4
     }
 
     #[test]
@@ -148,8 +132,8 @@ mod tests {
         let state = make_state();
         let shell = MasterStateShell::new(state);
 
-        let _secret = shell.secret_key().unwrap(); // 4
-        let _connections = shell.shutdown_mut().unwrap(); // 3 → panic
+        let _secret = shell.secret_key(); // 4
+        let _connections = shell.shutdown_mut(); // 3 → panic
     }
 
     #[test]
@@ -158,8 +142,8 @@ mod tests {
             let state = make_state();
             let shell = MasterStateShell::new(state);
 
-            let _secret = shell.distributor().unwrap(); // 2
-            let _connections = shell.connections().unwrap(); // 1 → panic
+            let _secret = shell.distributor(); // 2
+            let _connections = shell.connections(); // 1 → panic
         });
         assert!(result.is_err());
     }
