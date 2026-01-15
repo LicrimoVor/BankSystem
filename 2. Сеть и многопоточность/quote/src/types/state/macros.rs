@@ -11,7 +11,9 @@ macro_rules! state_accessor {
         type = $type:ty,
         sync = Mutex,
     ) => {
-        #[doc = "### Получение guard версии поля мастера"]
+        #[doc = "### Получение guard версии поля мастера (статик)"]
+        // не работает
+        // #[doc = concat!("`", stringify!($name), "` берется ", stringify!($id), "-м")]
         pub(crate) fn $name(
             &self,
         ) -> ValueGuard<

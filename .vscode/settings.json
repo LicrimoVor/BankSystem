@@ -1,0 +1,7 @@
+{
+	"rust-analyzer.linkedProjects": [
+		"1. Основные фичи/Cargo.toml",
+		"2. Сеть и многопоточность/Cargo.toml",
+		"3. Асинхронность и веб/Cargo.toml"
+	]
+}
