@@ -7,7 +7,7 @@ use crate::{
     infrastructure::{error::ErrorApi, state::State},
 };
 
-pub async fn create_user(
+pub async fn create_account(
     state: &mut State,
     id: Uuid,
     email: &str,
@@ -28,7 +28,7 @@ pub async fn create_user(
     Ok(())
 }
 
-pub async fn find_by_email(state: &State, email: &str) -> Option<User> {
+pub async fn get_account_by_id(state: &State, email: &str) -> Option<User> {
     let users = state.users().await;
     users.values().find(|u| u.email == email).cloned()
 }

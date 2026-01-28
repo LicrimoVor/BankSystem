@@ -1,31 +1,9 @@
 use actix_web::{get, post, web, HttpResponse, Responder};
-use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
+use super::super::dto::user::{LoginDto, RegisterDto, TokenResponse};
 use crate::data::user_repo;
 use crate::infrastructure::{config::Config, security};
-
-#[derive(Deserialize)]
-struct RegisterDto {
-    email: String,
-    password: String,
-}
-
-#[derive(Deserialize)]
-struct LoginDto {
-    email: String,
-    password: String,
-}
-
-#[derive(Serialize)]
-struct TokenResponse {
-    access_token: String,
-}
-
-#[get("/health")]
-async fn health() -> impl Responder {
-    HttpResponse::Ok().json(serde_json::json!({"status":"ok"}))
-}
 
 #[post("/register")]
 async fn register(
@@ -84,5 +62,5 @@ async fn login(
 }
 
 pub fn configure(cfg: &mut actix_web::web::ServiceConfig) {
-    cfg.service(health).service(register).service(login);
+    cfg.service(register).service(login);
 }
