@@ -28,3 +28,4 @@ env_logger = "0.11"
 futures-util = "0.3"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "chrono"] }
+getset = "0.1"

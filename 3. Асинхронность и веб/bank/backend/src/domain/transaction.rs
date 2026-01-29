@@ -1,0 +1,106 @@
+use getset::Getters;
+use serde::Serialize;
+use uuid::Uuid;
+
+use crate::{domain::account::Account, impl_constructor, infrastructure::error::ErrorApi};
+
+#[derive(Debug, Serialize, Clone)]
+pub enum Operation {
+    DEPOSIT,
+    WITHDRAWAL,
+    TRANSFER,
+}
+
+#[derive(Debug, Serialize, Clone, Getters)]
+pub struct Transaction {
+    #[getset(get = "pub")]
+    id: Uuid,
+
+    #[getset(get = "pub")]
+    operation: Operation,
+
+    #[getset(get = "pub")]
+    amount: f64,
+
+    /// uuid account
+    #[getset(get = "pub")]
+    from: Option<Uuid>,
+
+    /// uuid account
+    #[getset(get = "pub")]
+    to: Option<Uuid>,
+
+    #[getset(get = "pub")]
+    created_at: chrono::DateTime<chrono::Utc>,
+}
+
+pub trait TransactionRepository {
+    async fn create_deposit(&mut self, amount: f64, to: &Account) -> Result<Transaction, ErrorApi>;
+    async fn create_withdrawal(
+        &mut self,
+        amount: f64,
+        from: &Account,
+    ) -> Result<Transaction, ErrorApi>;
+    async fn create_transfer(
+        &mut self,
+        amount: f64,
+        from: &Account,
+        to: &Account,
+    ) -> Result<Transaction, ErrorApi>;
+    async fn delete(&mut self, transaction: &Transaction) -> Result<(), ErrorApi>;
+    async fn get_by_id(&self, id: Uuid) -> Option<Transaction>;
+    async fn gets_by_account(&self, account: &Account) -> Option<Vec<Transaction>>;
+}
+
+pub mod factory {
+    use super::*;
+
+    pub fn create_deposit(
+        id: Uuid,
+        amount: f64,
+        to: Uuid,
+        created_at: chrono::DateTime<chrono::Utc>,
+    ) -> Transaction {
+        Transaction {
+            id,
+            operation: Operation::DEPOSIT,
+            amount,
+            from: None,
+            to: Some(to),
+            created_at,
+        }
+    }
+
+    pub fn create_withdrawal(
+        id: Uuid,
+        amount: f64,
+        from: Uuid,
+        created_at: chrono::DateTime<chrono::Utc>,
+    ) -> Transaction {
+        Transaction {
+            id,
+            operation: Operation::WITHDRAWAL,
+            amount,
+            from: Some(from),
+            to: None,
+            created_at,
+        }
+    }
+
+    pub fn create_transfer(
+        id: Uuid,
+        amount: f64,
+        from: Uuid,
+        to: Uuid,
+        created_at: chrono::DateTime<chrono::Utc>,
+    ) -> Transaction {
+        Transaction {
+            id,
+            operation: Operation::TRANSFER,
+            amount,
+            from: Some(from),
+            to: Some(to),
+            created_at,
+        }
+    }
+}
