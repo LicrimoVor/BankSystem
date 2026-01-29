@@ -1,3 +1,3 @@
 pub mod account;
-pub mod general;
+pub mod transaction;
 pub mod user;

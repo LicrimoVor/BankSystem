@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use uuid::Uuid;
 
 use crate::{
@@ -8,9 +10,9 @@ use crate::{
     infrastructure::{error::ErrorApi, state::State},
 };
 
-pub struct AccountStateRepo<'a>(pub &'a mut State);
+pub struct AccountStateRepo(pub Arc<State>);
 
-impl<'a> AccountRepository for AccountStateRepo<'a> {
+impl AccountRepository for AccountStateRepo {
     async fn create(
         &mut self,
         user: &User,
@@ -20,7 +22,7 @@ impl<'a> AccountRepository for AccountStateRepo<'a> {
         let mut accounts = self.0.accounts().await;
         let account = account::factory::create(id, *user.id(), init_balance.unwrap_or(0.0));
         let Some(accs) = accounts.get_mut(&user.id()) else {
-            return Err(ErrorApi::State("User not found".to_string()));
+            return Err(ErrorApi::DataBase("User not found".to_string()));
         };
         accs.insert(id, account.clone());
 
@@ -30,10 +32,10 @@ impl<'a> AccountRepository for AccountStateRepo<'a> {
     async fn update(&mut self, account: &Account) -> Result<(), ErrorApi> {
         let mut accounts = self.0.accounts().await;
         let Some(accs) = accounts.get_mut(&account.user_id()) else {
-            return Err(ErrorApi::State("Account not found".to_string()));
+            return Err(ErrorApi::DataBase("Account not found".to_string()));
         };
         let Some(acc) = accs.get_mut(&account.id()) else {
-            return Err(ErrorApi::State("Account not found".to_string()));
+            return Err(ErrorApi::DataBase("Account not found".to_string()));
         };
         *acc = account.clone();
         Ok(())
@@ -41,7 +43,7 @@ impl<'a> AccountRepository for AccountStateRepo<'a> {
     async fn delete(&mut self, account: &Account) -> Result<(), ErrorApi> {
         let mut accounts = self.0.accounts().await;
         let Some(accs) = accounts.get_mut(&account.user_id()) else {
-            return Err(ErrorApi::State("Account not found".to_string()));
+            return Err(ErrorApi::DataBase("Account not found".to_string()));
         };
         accs.remove(&account.id());
         Ok(())

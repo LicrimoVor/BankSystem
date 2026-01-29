@@ -2,7 +2,6 @@ use actix_web::{get, post, web, HttpResponse, Responder};
 use sqlx::PgPool;
 
 use super::super::dto::user::{LoginDto, RegisterDto, TokenResponse};
-use crate::data::user_repo;
 use crate::infrastructure::{config::Config, security};
 
 #[post("/register")]

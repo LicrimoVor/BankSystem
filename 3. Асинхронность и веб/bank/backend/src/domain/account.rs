@@ -1,10 +1,10 @@
-use getset::Getters;
+use getset::{Getters, Setters};
 use serde::Serialize;
 use uuid::Uuid;
 
 use crate::{domain::user::User, impl_constructor, infrastructure::error::ErrorApi};
 
-#[derive(Debug, Serialize, Getters, Clone)]
+#[derive(Debug, Serialize, Getters, Setters, Clone)]
 pub struct Account {
     /// Account id
     #[getset(get = "pub")]
