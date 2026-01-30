@@ -1,5 +1,5 @@
+use async_trait::async_trait;
 use std::sync::Arc;
-
 use uuid::Uuid;
 
 use crate::{
@@ -12,6 +12,7 @@ use crate::{
 
 pub struct AccountStateRepo(pub Arc<State>);
 
+#[async_trait]
 impl AccountRepository for AccountStateRepo {
     async fn create(
         &mut self,
@@ -21,10 +22,10 @@ impl AccountRepository for AccountStateRepo {
         let id = Uuid::new_v4();
         let mut accounts = self.0.accounts().await;
         let account = account::factory::create(id, *user.id(), init_balance.unwrap_or(0.0));
-        let Some(accs) = accounts.get_mut(&user.id()) else {
-            return Err(ErrorApi::DataBase("User not found".to_string()));
-        };
-        accs.insert(id, account.clone());
+        accounts
+            .entry(*user.id())
+            .or_default()
+            .insert(id, account.clone());
 
         Ok(account)
     }

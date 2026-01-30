@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use getset::Getters;
 use serde::Serialize;
 use uuid::Uuid;
@@ -34,7 +35,8 @@ pub struct Transaction {
     created_at: chrono::DateTime<chrono::Utc>,
 }
 
-pub trait TransactionRepository {
+#[async_trait]
+pub trait TransactionRepository: Send + Sync {
     async fn create_deposit(&mut self, amount: f64, to: &Account) -> Result<Transaction, ErrorApi>;
     async fn create_withdrawal(
         &mut self,

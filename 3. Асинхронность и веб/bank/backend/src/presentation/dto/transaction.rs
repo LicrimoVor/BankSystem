@@ -28,3 +28,16 @@ pub struct TransactionDto {
     pub opeation: Operation,
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
+
+impl From<crate::domain::transaction::Transaction> for TransactionDto {
+    fn from(transaction: crate::domain::transaction::Transaction) -> Self {
+        Self {
+            id: *transaction.id(),
+            amount: *transaction.amount(),
+            from: *transaction.from(),
+            to: *transaction.to(),
+            opeation: transaction.operation().clone(),
+            created_at: *transaction.created_at(),
+        }
+    }
+}

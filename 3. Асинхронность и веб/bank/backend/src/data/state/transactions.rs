@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use chrono::Utc;
 use std::sync::Arc;
 use uuid::Uuid;
@@ -12,21 +13,17 @@ use crate::{
 
 pub struct TransactionStateRepo(pub Arc<State>);
 
+#[async_trait]
 impl TransactionRepository for TransactionStateRepo {
     async fn create_deposit(&mut self, amount: f64, to: &Account) -> Result<Transaction, ErrorApi> {
         let id = Uuid::new_v4();
         let created_at = Utc::now();
         let transaction = transaction::factory::create_deposit(id, amount, *to.id(), created_at);
         let mut transactions = self.0.transactions().await;
-        let Some(trans) = transactions.get_mut(to.id()) else {
-            return Err(ErrorApi::DataBase("Account not found".to_string()));
-        };
-        if trans.get(&id).is_some() {
-            return Err(ErrorApi::DataBase(
-                "Transaction id already exists".to_string(),
-            ));
-        };
-        trans.insert(id, transaction.clone());
+        transactions
+            .entry(*to.id())
+            .or_default()
+            .insert(id, transaction.clone());
 
         Ok(transaction)
     }
@@ -40,15 +37,10 @@ impl TransactionRepository for TransactionStateRepo {
         let transaction =
             transaction::factory::create_withdrawal(id, amount, *from.id(), created_at);
         let mut transactions = self.0.transactions().await;
-        let Some(trans) = transactions.get_mut(from.id()) else {
-            return Err(ErrorApi::DataBase("Account not found".to_string()));
-        };
-        if trans.get(&id).is_some() {
-            return Err(ErrorApi::DataBase(
-                "Transaction id already exists".to_string(),
-            ));
-        };
-        trans.insert(id, transaction.clone());
+        transactions
+            .entry(*from.id())
+            .or_default()
+            .insert(id, transaction.clone());
 
         Ok(transaction)
     }
@@ -63,23 +55,14 @@ impl TransactionRepository for TransactionStateRepo {
         let transaction =
             transaction::factory::create_transfer(id, amount, *from.id(), *to.id(), created_at);
         let mut transactions = self.0.transactions().await;
-        let [Some(from_trans), Some(to_trans)] =
-            transactions.get_disjoint_mut([from.id(), to.id()])
-        else {
-            return Err(ErrorApi::DataBase("Account not found".to_string()));
-        };
-        if from_trans.get(&id).is_some() {
-            return Err(ErrorApi::DataBase(
-                "Transaction id already exists".to_string(),
-            ));
-        };
-        if to_trans.get(&id).is_some() {
-            return Err(ErrorApi::DataBase(
-                "Transaction id already exists".to_string(),
-            ));
-        };
-        from_trans.insert(id, transaction.clone());
-        to_trans.insert(id, transaction.clone());
+        transactions
+            .entry(*from.id())
+            .or_default()
+            .insert(id, transaction.clone());
+        transactions
+            .entry(*to.id())
+            .or_default()
+            .insert(id, transaction.clone());
 
         Ok(transaction)
     }

@@ -11,7 +11,6 @@ pub struct Config {
 
 impl Config {
     pub fn from_env() -> anyhow::Result<Self> {
-        println!("{:#?}", std::env::vars());
         let database_url = std::env::var("DATABASE_URL")?;
         let host = std::env::var("HOST").unwrap_or_else(|_| "127.0.0.1".into());
         let port = std::env::var("PORT")

@@ -7,7 +7,8 @@ mod presentation;
 use std::sync::Arc;
 
 use actix_cors::Cors;
-use actix_web::{middleware::Logger, web, App, HttpServer};
+use actix_session::{storage::CookieSessionStore, Session, SessionMiddleware};
+use actix_web::{cookie::Key, middleware::Logger, web, App, HttpServer};
 use sqlx::postgres::PgPoolOptions;
 use tracing::info;
 
@@ -52,6 +53,10 @@ async fn main() -> std::io::Result<()> {
             .wrap(TimingMiddleware)
             .wrap(RequestIdMiddleware)
             .wrap(Logger::default())
+            .wrap(
+                SessionMiddleware::builder(CookieSessionStore::default(), Key::from(&[0; 64]))
+                    .build(),
+            )
             .wrap(cors)
             .app_data(web::Data::new(db.clone()))
             .app_data(web::Data::new(cfg.clone()))

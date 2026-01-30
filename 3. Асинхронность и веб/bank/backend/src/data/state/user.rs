@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use chrono::Utc;
 use std::sync::Arc;
 use uuid::Uuid;
@@ -9,6 +10,7 @@ use crate::{
 
 pub struct UserStateRepo(pub Arc<State>);
 
+#[async_trait]
 impl UserRepository for UserStateRepo {
     async fn create(&mut self, email: String, password_hash: String) -> Result<User, ErrorApi> {
         let id = Uuid::new_v4();

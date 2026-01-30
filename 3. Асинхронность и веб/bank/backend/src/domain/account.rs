@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use getset::{Getters, Setters};
 use serde::Serialize;
 use uuid::Uuid;
@@ -19,7 +20,8 @@ pub struct Account {
     balance: f64,
 }
 
-pub trait AccountRepository {
+#[async_trait]
+pub trait AccountRepository: Send + Sync {
     async fn create(&mut self, user: &User, init_balance: Option<f64>)
         -> Result<Account, ErrorApi>;
     async fn update(&mut self, account: &Account) -> Result<(), ErrorApi>;
@@ -28,5 +30,5 @@ pub trait AccountRepository {
     async fn gets_by_user(&self, user: &User) -> Option<Vec<Account>>;
 }
 
-impl_constructor!(token: AccountToken, Account, (id: Uuid, user_id: Uuid, balance: f64));
+// impl_constructor!(token: AccountToken, Account, (id: Uuid, user_id: Uuid, balance: f64));
 impl_constructor!(factory: Account, (id: Uuid, user_id: Uuid, balance: f64));

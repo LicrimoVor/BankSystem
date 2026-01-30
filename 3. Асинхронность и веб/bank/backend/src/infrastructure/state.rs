@@ -1,9 +1,9 @@
 use std::{collections::HashMap, sync::Arc};
-
 use tokio::sync::{Mutex, MutexGuard};
 
 use crate::domain::{account::Account, transaction::Transaction, user::User};
 
+#[derive(Debug, Clone)]
 pub struct State {
     /// HashMap<user_id, user>
     users: Arc<Mutex<HashMap<uuid::Uuid, User>>>,

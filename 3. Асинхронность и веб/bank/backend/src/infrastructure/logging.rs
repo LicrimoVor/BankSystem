@@ -1,6 +1,7 @@
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 
 pub fn init_logging() {
+    println!("Initializing logging");
     env_logger::init();
 
     tracing_subscriber::registry()
@@ -13,7 +14,7 @@ pub fn init_logging() {
                 .with_target(false)
                 .with_timer(tracing_subscriber::fmt::time::ChronoUtc::rfc_3339()),
         )
-        .init();
+        .try_init();
 
     tracing::info!("Logging initialized");
 }
