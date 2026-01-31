@@ -1,2 +1,2 @@
 pub const USER_ID_HEADER: &str = "X-User-Id";
-pub const AUTH_COOKIE: &str = "sessin-token";
+pub const REFRESH_COOKIE: &str = "refresh-token";

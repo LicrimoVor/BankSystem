@@ -3,7 +3,7 @@ use crate::{
     data::Database,
     infrastructure::error::ErrorApi,
     presentation::{
-        consts::AUTH_COOKIE,
+        consts::REFRESH_COOKIE,
         dto::transaction::{DepositDto, TransactionDto, TransferDto, WithdrawalDto},
     },
 };
@@ -18,7 +18,7 @@ async fn deposit(
     body: web::Json<DepositDto>,
     path: web::Path<Uuid>,
 ) -> actix_web::Result<impl Responder> {
-    let Some(user_id) = session.get::<Uuid>(AUTH_COOKIE)? else {
+    let Some(user_id) = session.get::<Uuid>(REFRESH_COOKIE)? else {
         return Ok(HttpResponse::Forbidden().finish());
     };
     let account_id = path.into_inner();
@@ -39,7 +39,7 @@ async fn withdrawal(
     body: web::Json<WithdrawalDto>,
     path: web::Path<Uuid>,
 ) -> actix_web::Result<impl Responder> {
-    let Some(user_id) = session.get::<Uuid>(AUTH_COOKIE)? else {
+    let Some(user_id) = session.get::<Uuid>(REFRESH_COOKIE)? else {
         return Ok(HttpResponse::Forbidden().finish());
     };
     let account_id = path.into_inner();
@@ -60,7 +60,7 @@ async fn transfer(
     body: web::Json<TransferDto>,
     path: web::Path<Uuid>,
 ) -> actix_web::Result<impl Responder> {
-    let Some(user_id) = session.get::<Uuid>(AUTH_COOKIE)? else {
+    let Some(user_id) = session.get::<Uuid>(REFRESH_COOKIE)? else {
         return Ok(HttpResponse::Forbidden().finish());
     };
     let account_id = path.into_inner();

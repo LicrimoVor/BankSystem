@@ -29,10 +29,10 @@ macro_rules! impl_constructor {
         pub(crate) mod factory {
             use super::*;
 
-            pub fn create($($arg_name: $arg_ty), *) -> $type {
-                $type {
+            pub fn create($($arg_name: $arg_ty), *) -> Result<$type, ErrorApi> {
+                Ok($type {
                     $($arg_name),*
-                }
+                })
             }
         }
 

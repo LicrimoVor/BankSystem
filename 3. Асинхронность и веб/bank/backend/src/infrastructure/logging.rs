@@ -2,9 +2,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilte
 
 pub fn init_logging() {
     println!("Initializing logging");
-    env_logger::init();
-
-    tracing_subscriber::registry()
+    let res = tracing_subscriber::registry()
         .with(
             EnvFilter::try_from_default_env()
                 .unwrap_or_else(|_| "actix_web=info,my_app=debug".into()),

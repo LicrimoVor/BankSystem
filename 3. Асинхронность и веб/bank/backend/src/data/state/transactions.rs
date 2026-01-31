@@ -18,7 +18,7 @@ impl TransactionRepository for TransactionStateRepo {
     async fn create_deposit(&mut self, amount: f64, to: &Account) -> Result<Transaction, ErrorApi> {
         let id = Uuid::new_v4();
         let created_at = Utc::now();
-        let transaction = transaction::factory::create_deposit(id, amount, *to.id(), created_at);
+        let transaction = transaction::factory::create_deposit(id, amount, *to.id(), created_at)?;
         let mut transactions = self.0.transactions().await;
         transactions
             .entry(*to.id())
@@ -35,7 +35,7 @@ impl TransactionRepository for TransactionStateRepo {
         let id = Uuid::new_v4();
         let created_at = Utc::now();
         let transaction =
-            transaction::factory::create_withdrawal(id, amount, *from.id(), created_at);
+            transaction::factory::create_withdrawal(id, amount, *from.id(), created_at)?;
         let mut transactions = self.0.transactions().await;
         transactions
             .entry(*from.id())
@@ -53,7 +53,7 @@ impl TransactionRepository for TransactionStateRepo {
         let id = Uuid::new_v4();
         let created_at = Utc::now();
         let transaction =
-            transaction::factory::create_transfer(id, amount, *from.id(), *to.id(), created_at);
+            transaction::factory::create_transfer(id, amount, *from.id(), *to.id(), created_at)?;
         let mut transactions = self.0.transactions().await;
         transactions
             .entry(*from.id())

@@ -7,8 +7,6 @@ use crate::{
     infrastructure::error::ErrorApi,
 };
 
-const MIN_AMOUNT: f64 = 0.01;
-
 pub async fn deposit(
     db: Arc<Database>,
     user: &User,
@@ -39,12 +37,6 @@ pub async fn withdraw(
     account_id: Uuid,
     amount: f64,
 ) -> Result<Transaction, ErrorApi> {
-    if amount < MIN_AMOUNT {
-        return Err(ErrorApi::Validation(
-            "Transaction amount must be at least 0.01".to_string(),
-        ));
-    }
-
     let mut repo_acc = db.clone().get_account_repo();
     let mut repo_tran = db.get_transaction_repo();
     let Some(mut account) = repo_acc.get_by_id(account_id).await else {
@@ -75,12 +67,6 @@ pub async fn transfer(
     to_account_id: Uuid,
     amount: f64,
 ) -> Result<Transaction, ErrorApi> {
-    if amount < MIN_AMOUNT {
-        return Err(ErrorApi::Validation(
-            "Transaction amount must be at least 0.01".to_string(),
-        ));
-    }
-
     let mut repo_acc = db.clone().get_account_repo();
     let mut repo_tran = db.get_transaction_repo();
     let Some(mut from_account) = repo_acc.get_by_id(from_account_id).await else {

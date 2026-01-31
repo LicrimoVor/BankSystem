@@ -31,4 +31,22 @@ pub trait AccountRepository: Send + Sync {
 }
 
 // impl_constructor!(token: AccountToken, Account, (id: Uuid, user_id: Uuid, balance: f64));
-impl_constructor!(factory: Account, (id: Uuid, user_id: Uuid, balance: f64));
+// impl_constructor!(factory: Account, (id: Uuid, user_id: Uuid, balance: f64));
+
+pub mod factory {
+    use super::*;
+
+    pub fn create(id: Uuid, user_id: Uuid, balance: f64) -> Result<Account, ErrorApi> {
+        if balance < 0.0 {
+            return Err(ErrorApi::Validation(
+                "Account balance cannot be negative".to_string(),
+            ));
+        }
+
+        Ok(Account {
+            id,
+            user_id,
+            balance,
+        })
+    }
+}

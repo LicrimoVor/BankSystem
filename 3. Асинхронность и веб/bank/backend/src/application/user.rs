@@ -1,41 +1,34 @@
 use std::sync::Arc;
-
-use regex::Regex;
 use uuid::Uuid;
 
 use crate::{
     data::Database,
-    domain::user::User,
-    infrastructure::{error::ErrorApi, security::hash_password},
+    domain::{token::RefreshToken, user::User},
+    infrastructure::{
+        config::Config,
+        error::ErrorApi,
+        security::{self, hash_password},
+    },
 };
-
-const EMAIL_REGEX: &str = r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+.[A-Za-z]{2,}$";
-const MIN_PASSWORD_LEN: usize = 8;
 
 pub async fn create_user(
     db: Arc<Database>,
+    cfg: Arc<Config>,
     email: String,
     password: String,
-) -> Result<User, ErrorApi> {
+) -> Result<(User, RefreshToken, String), ErrorApi> {
     let email = email.trim().to_lowercase();
-    let db = (db.clone()).clone();
-    if password.len() < MIN_PASSWORD_LEN {
-        return Err(ErrorApi::Validation(
-            "Password must be at least 8 characters".to_string(),
-        ));
-    }
-    let Ok(regex) = Regex::new(EMAIL_REGEX) else {
-        return Err(ErrorApi::Inner("Invalid regex".to_string()));
-    };
-    if !regex.is_match(&email) {
-        return Err(ErrorApi::Validation("Invalid email format".to_string()));
-    };
+    let mut user_repo = db.clone().get_user_repo();
+    let mut token_repo = db.get_refresh_token_repo();
+    let user = user_repo.create(email, password).await?;
 
-    let Ok(password_hash) = hash_password(&password) else {
-        return Err(ErrorApi::Inner("Hash error".to_string()));
-    };
-    let mut repo = db.get_user_repo();
-    repo.create(email, password_hash).await
+    let jwt_token = security::generate_jwt(&cfg.jwt_secret, *user.id())
+        .map_err(|_| ErrorApi::Inner("jwt error".to_string()))?;
+    let token = token_repo
+        .create(security::generate_refresh_token(), *user.id())
+        .await?;
+
+    Ok((user, token, jwt_token))
 }
 
 pub async fn delete_user(db: Arc<Database>, user: &User) -> Result<(), ErrorApi> {
@@ -48,7 +41,56 @@ pub async fn get_user_by_id(db: Arc<Database>, id: Uuid) -> Option<User> {
     repo.get_by_id(id).await
 }
 
-pub async fn get_user_by_email(db: Arc<Database>, email: String) -> Option<User> {
-    let repo = db.get_user_repo();
-    repo.get_by_email(email).await
+pub async fn login_user(
+    db: Arc<Database>,
+    cfg: Arc<Config>,
+    email: String,
+    password: String,
+) -> Result<(User, RefreshToken, String), ErrorApi> {
+    let email = email.trim().to_lowercase();
+    let user_repo = db.clone().get_user_repo();
+    let mut token_repo = db.get_refresh_token_repo();
+
+    let user = user_repo
+        .get_by_email(email)
+        .await
+        .ok_or(ErrorApi::NotFound("User not found".to_string()))?;
+
+    let ok = security::verify_password(&password, &user.password_hash())
+        .map_err(|_| ErrorApi::Inner("verify error".to_string()))?;
+
+    if !ok {
+        return Err(ErrorApi::Validation("Invalid password".to_string()));
+    }
+
+    let jwt_token = security::generate_jwt(&cfg.jwt_secret, *user.id())
+        .map_err(|_| ErrorApi::Inner("jwt error".to_string()))?;
+    let token = token_repo
+        .create(security::generate_refresh_token(), *user.id())
+        .await?;
+
+    Ok((user, token, jwt_token))
+}
+
+pub async fn logout_user(db: Arc<Database>, refresh_token: String) -> Result<(), ErrorApi> {
+    let mut repo = db.get_refresh_token_repo();
+    let token_refresh_hash =
+        hash_password(&refresh_token).map_err(|_| ErrorApi::Inner("hash error".to_string()))?;
+    repo.delete(token_refresh_hash).await?;
+    Ok(())
+}
+
+pub async fn refresh_jwt_token(
+    db: Arc<Database>,
+    cfg: Arc<Config>,
+    refresh_token: String,
+) -> Result<String, ErrorApi> {
+    let repo = db.get_refresh_token_repo();
+    let token_refresh_hash =
+        hash_password(&refresh_token).map_err(|_| ErrorApi::Inner("hash error".to_string()))?;
+    let token = repo.get(token_refresh_hash).await?;
+
+    let jwt_token = security::generate_jwt(&cfg.jwt_secret, *token.user_id())
+        .map_err(|_| ErrorApi::Inner("jwt error".to_string()))?;
+    Ok(jwt_token)
 }

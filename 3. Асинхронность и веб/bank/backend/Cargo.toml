@@ -32,3 +32,4 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "chrono"] }
 getset = "0.1"
 regex = "1.12"
+rand = "0.9"

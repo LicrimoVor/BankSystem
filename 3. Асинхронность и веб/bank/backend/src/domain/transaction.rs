@@ -62,15 +62,21 @@ pub mod factory {
         amount: f64,
         to: Uuid,
         created_at: chrono::DateTime<chrono::Utc>,
-    ) -> Transaction {
-        Transaction {
+    ) -> Result<Transaction, ErrorApi> {
+        if amount < 0.0 {
+            return Err(ErrorApi::Validation(
+                "Deposit amount cannot be negative".to_string(),
+            ));
+        }
+
+        Ok(Transaction {
             id,
             operation: Operation::DEPOSIT,
             amount,
             from: None,
             to: Some(to),
             created_at,
-        }
+        })
     }
 
     pub fn create_withdrawal(
@@ -78,15 +84,20 @@ pub mod factory {
         amount: f64,
         from: Uuid,
         created_at: chrono::DateTime<chrono::Utc>,
-    ) -> Transaction {
-        Transaction {
+    ) -> Result<Transaction, ErrorApi> {
+        if amount < 0.0 {
+            return Err(ErrorApi::Validation(
+                "Deposit amount cannot be negative".to_string(),
+            ));
+        }
+        Ok(Transaction {
             id,
             operation: Operation::WITHDRAWAL,
             amount,
             from: Some(from),
             to: None,
             created_at,
-        }
+        })
     }
 
     pub fn create_transfer(
@@ -95,14 +106,26 @@ pub mod factory {
         from: Uuid,
         to: Uuid,
         created_at: chrono::DateTime<chrono::Utc>,
-    ) -> Transaction {
-        Transaction {
+    ) -> Result<Transaction, ErrorApi> {
+        if amount < 0.0 {
+            return Err(ErrorApi::Validation(
+                "Deposit amount cannot be negative".to_string(),
+            ));
+        }
+
+        if to == from {
+            return Err(ErrorApi::Validation(
+                "Transfer to and from cannot be the same".to_string(),
+            ));
+        }
+
+        Ok(Transaction {
             id,
             operation: Operation::TRANSFER,
             amount,
             from: Some(from),
             to: Some(to),
             created_at,
-        }
+        })
     }
 }

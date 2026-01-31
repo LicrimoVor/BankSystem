@@ -6,8 +6,13 @@ use argon2::{
 };
 use chrono::{Duration, Utc};
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
+use rand::distr::Alphanumeric;
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+
+pub const JWT_SECRET: &str = "secret";
+pub const REFRESH_TOKEN_DURATION: Duration = Duration::days(31 * 5);
 
 pub fn hash_password(plain: &str) -> Result<String> {
     let salt = SaltString::generate(&mut OsRng);
@@ -58,4 +63,12 @@ pub fn verify_jwt(secret: &str, token: &str) -> Result<Uuid> {
     )?;
     let uid = Uuid::parse_str(&data.claims.sub)?;
     Ok(uid)
+}
+
+pub fn generate_refresh_token() -> String {
+    rand::rng()
+        .sample_iter(&Alphanumeric)
+        .take(128)
+        .map(char::from)
+        .collect()
 }

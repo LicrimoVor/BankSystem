@@ -2,7 +2,7 @@ use crate::{
     application::{account, user},
     data::Database,
     infrastructure::error::ErrorApi,
-    presentation::{consts::AUTH_COOKIE, dto::account::AccountDto},
+    presentation::{consts::REFRESH_COOKIE, dto::account::AccountDto},
 };
 use actix_session::Session;
 use actix_web::{get, post, web, HttpResponse, Responder};
@@ -13,7 +13,7 @@ async fn create_account(
     db: web::Data<Database>,
     session: Session,
 ) -> actix_web::Result<impl Responder> {
-    let Some(user_id) = session.get::<Uuid>(AUTH_COOKIE)? else {
+    let Some(user_id) = session.get::<Uuid>(REFRESH_COOKIE)? else {
         return Ok(HttpResponse::Forbidden().finish());
     };
 
@@ -31,7 +31,7 @@ async fn get_account_by_id(
     session: Session,
     path: web::Path<Uuid>,
 ) -> actix_web::Result<impl Responder> {
-    let Some(user_id) = session.get::<Uuid>(AUTH_COOKIE)? else {
+    let Some(user_id) = session.get::<Uuid>(REFRESH_COOKIE)? else {
         return Ok(HttpResponse::Forbidden().finish());
     };
     let account_id = path.into_inner();

@@ -3,10 +3,12 @@ use std::sync::Arc;
 
 use crate::{
     data::state::{
-        account::AccountStateRepo, transactions::TransactionStateRepo, user::UserStateRepo,
+        account::AccountStateRepo, token::RefreshTokenStateRepo,
+        transactions::TransactionStateRepo, user::UserStateRepo,
     },
     domain::{
-        account::AccountRepository, transaction::TransactionRepository, user::UserRepository,
+        account::AccountRepository, token::RefreshTokenRepository,
+        transaction::TransactionRepository, user::UserRepository,
     },
     infrastructure::state::State,
 };
@@ -54,5 +56,11 @@ impl Database {
         TransactionRepository,
         todo,
         TransactionStateRepo
+    );
+    fn_get_repo!(
+        get_refresh_token_repo,
+        RefreshTokenRepository,
+        todo,
+        RefreshTokenStateRepo
     );
 }

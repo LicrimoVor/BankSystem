@@ -21,7 +21,7 @@ impl AccountRepository for AccountStateRepo {
     ) -> Result<Account, ErrorApi> {
         let id = Uuid::new_v4();
         let mut accounts = self.0.accounts().await;
-        let account = account::factory::create(id, *user.id(), init_balance.unwrap_or(0.0));
+        let account = account::factory::create(id, *user.id(), init_balance.unwrap_or(0.0))?;
         accounts
             .entry(*user.id())
             .or_default()
