@@ -1,5 +1,4 @@
 use std::sync::Arc;
-
 use uuid::Uuid;
 
 use crate::{
@@ -34,7 +33,7 @@ pub async fn delete_account(
     };
 
     if account.user_id() != user.id() {
-        return Err(ErrorApi::Forbidden);
+        return Err(ErrorApi::Forbidden("account".to_string()));
     }
 
     repo.delete(&account).await

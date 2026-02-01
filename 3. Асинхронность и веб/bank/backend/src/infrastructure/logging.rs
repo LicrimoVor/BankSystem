@@ -14,5 +14,9 @@ pub fn init_logging() {
         )
         .try_init();
 
+    if let Err(e) = res {
+        println!("Error initializing logging: {}", e);
+    }
+
     tracing::info!("Logging initialized");
 }

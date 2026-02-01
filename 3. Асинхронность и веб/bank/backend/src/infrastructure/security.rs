@@ -9,10 +9,11 @@ use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation}
 use rand::distr::Alphanumeric;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use uuid::Uuid;
 
-pub const JWT_SECRET: &str = "secret";
 pub const REFRESH_TOKEN_DURATION: Duration = Duration::days(31 * 5);
+const REFRESH_TOKEN_SALT: &str = "refresh_token";
 
 pub fn hash_password(plain: &str) -> Result<String> {
     let salt = SaltString::generate(&mut OsRng);
@@ -28,6 +29,12 @@ pub fn verify_password(plain: &str, hash: &str) -> Result<bool> {
     let parsed = PasswordHash::new(hash).map_err(|e| anyhow!("argon2 hash error: {}", e))?;
     let argon2 = Argon2::default();
     Ok(argon2.verify_password(plain.as_bytes(), &parsed).is_ok())
+}
+
+pub fn hash_token(plain: &str) -> Result<String> {
+    let plain = format!("{}{}", plain, REFRESH_TOKEN_SALT);
+    let hash = Sha256::digest(plain.as_bytes());
+    Ok(hex::encode(hash))
 }
 
 #[derive(Debug, Serialize, Deserialize)]

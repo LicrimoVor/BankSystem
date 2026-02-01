@@ -7,6 +7,8 @@ use actix_web::{Error, HttpMessage};
 use futures_util::future::LocalBoxFuture;
 use uuid::Uuid;
 
+use crate::presentation::consts::USER_ID_HEADER;
+
 #[derive(Clone, Debug)]
 pub struct RequestId(pub String);
 
@@ -48,7 +50,7 @@ where
     fn call(&self, req: ServiceRequest) -> Self::Future {
         let request_id = req
             .headers()
-            .get("x-request-id")
+            .get(USER_ID_HEADER)
             .and_then(|value| value.to_str().ok())
             .map(|s| s.to_owned())
             .unwrap_or_else(|| Uuid::new_v4().to_string());
@@ -60,7 +62,7 @@ where
         Box::pin(async move {
             let mut res = fut.await?;
             res.response_mut().headers_mut().insert(
-                HeaderName::from_static("x-request-id"),
+                HeaderName::from_static(USER_ID_HEADER),
                 HeaderValue::from_str(&request_id).unwrap(),
             );
             Ok(res)

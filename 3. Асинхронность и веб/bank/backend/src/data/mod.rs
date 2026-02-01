@@ -16,7 +16,7 @@ use crate::{
 pub mod sea;
 pub mod state;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Database {
     SEA(Arc<PgPool>),
     STATE(Arc<State>),

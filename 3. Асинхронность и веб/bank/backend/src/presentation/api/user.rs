@@ -9,11 +9,11 @@ use super::super::dto::user::{LoginDto, RegisterDto, TokenResponse};
 use crate::{
     application::user::{create_user, get_user_by_id, login_user, refresh_jwt_token},
     data::Database,
-    infrastructure::{config::Config, error::ErrorApi, security},
+    infrastructure::{config::Config, error::ErrorApi},
     presentation::{
         consts::REFRESH_COOKIE,
         dto::user::{UserDto, UserLoginDto},
-        extractor::refresh::RefreshTokenExtractor,
+        extractor::{refresh::RefreshTokenExtractor, user::UserExtractor},
     },
 };
 
@@ -31,8 +31,8 @@ async fn register(
     let (user, token, jwt_token) =
         create_user(db.into_inner(), cfg.into_inner(), email, password).await?;
 
-    let cookie = Cookie::build(REFRESH_COOKIE, token.refresh_token_hash())
-        .path("/auth/refresh")
+    let cookie = Cookie::build(REFRESH_COOKIE, token)
+        .path("/api/auth/refresh")
         .secure(true)
         .same_site(SameSite::Strict)
         .http_only(true)
@@ -43,7 +43,6 @@ async fn register(
         id: user.id().clone(),
         email: user.email().clone(),
         access_token: jwt_token,
-        refresh_expires_at: token.expires_at().to_string(),
     }))
 }
 
@@ -66,7 +65,7 @@ async fn login(
     )
     .await?;
 
-    let cookie = Cookie::build(REFRESH_COOKIE, token.refresh_token_hash())
+    let cookie = Cookie::build(REFRESH_COOKIE, token)
         .path("/auth/refresh")
         .secure(true)
         .same_site(SameSite::Strict)
@@ -78,10 +77,10 @@ async fn login(
         id: user.id().clone(),
         email: user.email().clone(),
         access_token: jwt_token,
-        refresh_expires_at: token.expires_at().to_string(),
     }))
 }
 
+#[post("/auth/refresh")]
 async fn refresh_token(
     db: web::Data<Database>,
     cfg: web::Data<Config>,
@@ -94,12 +93,8 @@ async fn refresh_token(
 }
 
 #[get("/me")]
-async fn me(db: web::Data<Database>, session: Session) -> actix_web::Result<impl Responder> {
-    let Some(user_id) = session.get::<Uuid>(REFRESH_COOKIE)? else {
-        return Ok(HttpResponse::Forbidden().finish());
-    };
-
-    let user = get_user_by_id(db.clone().into_inner(), user_id)
+async fn me(db: web::Data<Database>, user: UserExtractor) -> actix_web::Result<impl Responder> {
+    let user = get_user_by_id(db.clone().into_inner(), user.id)
         .await
         .ok_or(ErrorApi::NotFound("User not found".to_string()))?;
 
@@ -107,5 +102,8 @@ async fn me(db: web::Data<Database>, session: Session) -> actix_web::Result<impl
 }
 
 pub fn configure(cfg: &mut actix_web::web::ServiceConfig) {
-    cfg.service(register).service(login).service(me);
+    cfg.service(register)
+        .service(login)
+        .service(refresh_token)
+        .service(me);
 }

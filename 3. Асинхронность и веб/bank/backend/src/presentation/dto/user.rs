@@ -38,5 +38,4 @@ pub struct UserLoginDto {
     pub id: Uuid,
     pub email: String,
     pub access_token: String,
-    pub refresh_expires_at: String,
 }

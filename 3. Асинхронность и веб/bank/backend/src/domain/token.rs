@@ -26,23 +26,23 @@ impl RefreshToken {
 pub trait RefreshTokenRepository: Send + Sync {
     async fn create(
         &mut self,
-        refresh_token_hash: String,
+        refresh_token: String,
         user_id: Uuid,
     ) -> Result<RefreshToken, ErrorApi>;
-    async fn delete(&mut self, refresh_token_hash: String) -> Result<RefreshToken, ErrorApi>;
-    async fn get(&self, refresh_token_hash: String) -> Result<RefreshToken, ErrorApi>;
+    async fn delete(&mut self, refresh_token: String) -> Result<RefreshToken, ErrorApi>;
+    async fn get(&self, refresh_token: String) -> Result<RefreshToken, ErrorApi>;
 }
 
 pub mod factory {
     use super::*;
-    use crate::infrastructure::security::hash_password;
+    use crate::infrastructure::security::hash_token;
 
     pub fn create(
         refresh_token: String,
         user_id: Uuid,
         expires_at: DateTime<Utc>,
     ) -> Result<RefreshToken, ErrorApi> {
-        let Ok(refresh_token_hash) = hash_password(&refresh_token) else {
+        let Ok(refresh_token_hash) = hash_token(&refresh_token) else {
             return Err(ErrorApi::Inner("Hash error".to_string()));
         };
 

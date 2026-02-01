@@ -4,7 +4,7 @@ use thiserror::Error;
 #[derive(Debug, Error)]
 pub enum ErrorApi {
     #[error("Forbidden")]
-    Forbidden,
+    Forbidden(String),
 
     #[error("Validation failed: {0}")]
     Validation(String),
@@ -13,7 +13,7 @@ pub enum ErrorApi {
     NotFound(String),
 
     #[error("Unauthorized")]
-    Unauthorized,
+    Unauthorized(String),
 
     #[error("State error: {0}")]
     DataBase(String),
@@ -25,10 +25,10 @@ pub enum ErrorApi {
 impl ResponseError for ErrorApi {
     fn error_response(&self) -> HttpResponse {
         let status = match self {
-            ErrorApi::Forbidden => StatusCode::FORBIDDEN,
+            ErrorApi::Forbidden(_) => StatusCode::FORBIDDEN,
             ErrorApi::Validation(_) => StatusCode::BAD_REQUEST,
             ErrorApi::NotFound(_) => StatusCode::NOT_FOUND,
-            ErrorApi::Unauthorized => StatusCode::UNAUTHORIZED,
+            ErrorApi::Unauthorized(_) => StatusCode::UNAUTHORIZED,
             ErrorApi::DataBase(_) => StatusCode::INTERNAL_SERVER_ERROR,
             ErrorApi::Inner(_) => StatusCode::INTERNAL_SERVER_ERROR,
         };
