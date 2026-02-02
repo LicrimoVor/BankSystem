@@ -1,11 +1,11 @@
 use std::sync::Arc;
+use tracing::info;
 use uuid::Uuid;
 
 use crate::{
     data::Database,
-    domain::{token::RefreshToken, user::User},
+    domain::user::User,
     infrastructure::{config::Config, error::ErrorApi, security},
-    presentation::extractor::refresh,
 };
 
 pub async fn create_user(
@@ -14,6 +14,7 @@ pub async fn create_user(
     email: String,
     password: String,
 ) -> Result<(User, String, String), ErrorApi> {
+    info!("Creating user {}", email);
     let email = email.trim().to_lowercase();
     let mut user_repo = db.clone().get_user_repo();
     let mut token_repo = db.get_refresh_token_repo();
@@ -43,6 +44,7 @@ pub async fn login_user(
     email: String,
     password: String,
 ) -> Result<(User, String, String), ErrorApi> {
+    info!("Logging in user {}", email);
     let email = email.trim().to_lowercase();
     let user_repo = db.clone().get_user_repo();
     let mut token_repo = db.get_refresh_token_repo();
@@ -78,6 +80,7 @@ pub async fn refresh_jwt_token(
     cfg: Arc<Config>,
     refresh_token: String,
 ) -> Result<String, ErrorApi> {
+    info!("Refreshing token {}", refresh_token);
     let repo = db.get_refresh_token_repo();
     let token = repo.get(refresh_token).await?;
 

@@ -1,4 +1,4 @@
-use actix_web::{dev::Payload, web::Data, Error, FromRequest, HttpRequest};
+use actix_web::{dev::Payload, http::header, web::Data, Error, FromRequest, HttpRequest};
 use serde::Serialize;
 use std::future::{ready, Ready};
 use uuid::Uuid;
@@ -17,7 +17,7 @@ impl FromRequest for UserExtractor {
     fn from_request(req: &HttpRequest, _: &mut Payload) -> Self::Future {
         let auth_header = req
             .headers()
-            .get("Authorization")
+            .get(header::AUTHORIZATION)
             .and_then(|h| h.to_str().ok());
 
         let token = match auth_header {

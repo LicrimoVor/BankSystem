@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use tracing::info;
 use uuid::Uuid;
 
 use crate::{
@@ -13,15 +14,18 @@ pub async fn deposit(
     account_id: Uuid,
     amount: f64,
 ) -> Result<Transaction, ErrorApi> {
+    info!("Depositing {} to account {}", amount, account_id);
     let mut repo_acc = db.clone().get_account_repo();
     let mut repo_tran = db.get_transaction_repo();
     let Some(mut account) = repo_acc.get_by_id(account_id).await else {
         return Err(ErrorApi::Validation("Account not found".to_string()));
     };
     if account.user_id() != user.id() {
-        return Err(ErrorApi::Validation(
-            "Account does not belong to user".to_string(),
-        ));
+        return Err(ErrorApi::Validation(format!(
+            "Account {} does not belong to user {}",
+            account_id,
+            user.id()
+        )));
     }
     account.set_balance(*account.balance() + amount);
 
@@ -37,20 +41,24 @@ pub async fn withdraw(
     account_id: Uuid,
     amount: f64,
 ) -> Result<Transaction, ErrorApi> {
+    info!("Withdrawing {} from account {}", amount, account_id);
     let mut repo_acc = db.clone().get_account_repo();
     let mut repo_tran = db.get_transaction_repo();
     let Some(mut account) = repo_acc.get_by_id(account_id).await else {
         return Err(ErrorApi::Validation("Account not found".to_string()));
     };
     if account.user_id() != user.id() {
-        return Err(ErrorApi::Validation(
-            "Account does not belong to user".to_string(),
-        ));
+        return Err(ErrorApi::Validation(format!(
+            "Account {} does not belong to user {}",
+            account_id,
+            user.id()
+        )));
     }
     if *account.balance() < amount {
-        return Err(ErrorApi::Validation(
-            "Account balance is not enough".to_string(),
-        ));
+        return Err(ErrorApi::Validation(format!(
+            "Account balance is not enough: {}",
+            account.balance()
+        )));
     }
     account.set_balance(*account.balance() - amount);
 
@@ -67,6 +75,10 @@ pub async fn transfer(
     to_account_id: Uuid,
     amount: f64,
 ) -> Result<Transaction, ErrorApi> {
+    info!(
+        "Transferring {} from {} to {}",
+        amount, from_account_id, to_account_id
+    );
     let mut repo_acc = db.clone().get_account_repo();
     let mut repo_tran = db.get_transaction_repo();
     let Some(mut from_account) = repo_acc.get_by_id(from_account_id).await else {

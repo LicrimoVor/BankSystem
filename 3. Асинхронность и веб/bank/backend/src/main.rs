@@ -15,7 +15,9 @@ use tracing::info;
 use infrastructure::{config::Config, logging::init_logging, migrate};
 use presentation::middleware::{RequestIdMiddleware, TimingMiddleware};
 
-use crate::{data::Database, infrastructure::state::State};
+use crate::{
+    data::Database, infrastructure::state::State, presentation::middleware::csrf::CsrfMiddleware,
+};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -40,19 +42,20 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         let cors = Cors::default()
             .allowed_origin(&cfg.cors_origin)
-            .allowed_methods(vec!["GET", "POST", "OPTIONS"])
+            .allowed_methods(vec!["GET", "POST", "DELETE", "OPTIONS"])
             .allowed_headers(vec![
                 actix_web::http::header::CONTENT_TYPE,
                 actix_web::http::header::AUTHORIZATION,
             ])
             .supports_credentials()
-            .max_age(600);
+            .max_age(3600);
 
         info!("Start app");
         App::new()
             .wrap(TimingMiddleware)
             .wrap(RequestIdMiddleware)
             .wrap(Logger::default())
+            .wrap(CsrfMiddleware)
             .wrap(
                 SessionMiddleware::builder(CookieSessionStore::default(), Key::from(&[0; 64]))
                     .build(),

@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use tracing::info;
 use uuid::Uuid;
 
 use crate::{
@@ -12,11 +13,13 @@ pub async fn create_account(
     user: &User,
     amount: Option<f64>,
 ) -> Result<Account, ErrorApi> {
+    info!("Creating account for user {}", user.id());
     let mut repo = db.get_account_repo();
     repo.create(user, amount).await
 }
 
 pub async fn get_account_by_id(db: Arc<Database>, id: Uuid) -> Option<Account> {
+    info!("Getting account {}", id);
     let repo = db.get_account_repo();
     repo.get_by_id(id).await
 }
@@ -26,14 +29,19 @@ pub async fn delete_account(
     user: &User,
     account_id: Uuid,
 ) -> Result<(), ErrorApi> {
+    info!("Deleting account {}", account_id);
     let mut repo = db.get_account_repo();
 
     let Some(account) = repo.get_by_id(account_id).await else {
-        return Err(ErrorApi::NotFound("account".to_string()));
+        return Err(ErrorApi::NotFound(format!("Account {}", account_id)));
     };
 
     if account.user_id() != user.id() {
-        return Err(ErrorApi::Forbidden("account".to_string()));
+        return Err(ErrorApi::Forbidden(format!(
+            "Account {} does not belong to user {}",
+            account_id,
+            user.id()
+        )));
     }
 
     repo.delete(&account).await
