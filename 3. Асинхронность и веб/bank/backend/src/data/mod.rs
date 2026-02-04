@@ -1,66 +1,76 @@
-use sqlx::PgPool;
-use std::sync::Arc;
+pub mod sql;
+pub mod state;
+pub mod transaction;
 
 use crate::{
-    data::state::{
-        account::AccountStateRepo, token::RefreshTokenStateRepo,
-        transactions::TransactionStateRepo, user::UserStateRepo,
-    },
     domain::{
         account::AccountRepository, token::RefreshTokenRepository,
         transaction::TransactionRepository, user::UserRepository,
     },
-    infrastructure::state::State,
+    infrastructure::{error::ErrorApi, state::State},
 };
-
-pub mod sea;
-pub mod state;
+use sql::{
+    account::AccountSQLRepo, token::RefreshTokenSQLRepo, transactions::TransactionSQLRepo,
+    user::UserSQLRepo, DBTransactionSQL,
+};
+use sqlx::PgPool;
+use state::{
+    account::AccountStateRepo, token::RefreshTokenStateRepo, transactions::TransactionStateRepo,
+    user::UserStateRepo, DBTransactionState,
+};
+use std::sync::Arc;
 
 #[derive(Clone, Debug)]
 pub enum Database {
-    SEA(Arc<PgPool>),
+    PgSQL(Arc<PgPool>),
     STATE(Arc<State>),
 }
 
 macro_rules! fn_get_repo {
-    // ($name:ident, $train:ident, $repo_sea:ident, $repo_state:ident) => {
-    //     pub fn $name(self: Arc<Self>) -> Box<dyn $train> {
-    //         match self.as_ref() {
-    //             Database::SEA(pool) => Box::new($repo_sea!("{}", pool.clone())),
-    //             Database::STATE(state) => Box::new($repo_state(state.clone())),
-    //         }
-    //     }
-    // };
-    ($name:ident, $train:ident, todo, $repo_state:ident) => {
+    ($name:ident, $train:ident, $repo_sql:ident, $repo_state:ident) => {
         pub fn $name(self: Arc<Self>) -> Box<dyn $train> {
             match self.as_ref() {
-                Database::SEA(_) => todo!(),
+                Database::PgSQL(pool) => Box::new($repo_sql(pool.clone())),
                 Database::STATE(state) => Box::new($repo_state(state.clone())),
             }
         }
-    }; // ($name:ident, $train:ident, $repo_sea:ident, todo) => {
-       //     pub fn $name(self: Arc<Self>) -> Box<dyn $train> {
-       //         match self.as_ref() {
-       //             Database::SEA(pool) => Box::new($repo_sea(pool.clone())),
-       //             Database::STATE(state) => todo!(),
-       //         }
-       //     }
-       // };
+    };
 }
 
 impl Database {
-    fn_get_repo!(get_user_repo, UserRepository, todo, UserStateRepo);
-    fn_get_repo!(get_account_repo, AccountRepository, todo, AccountStateRepo);
+    pub async fn transaction(
+        self: Arc<Self>,
+    ) -> Result<Box<dyn transaction::DBTransaction>, ErrorApi> {
+        match self.as_ref() {
+            Database::PgSQL(pool) => match DBTransactionSQL::new(pool.clone()).await {
+                Ok(tx) => Ok(Box::new(tx) as Box<dyn transaction::DBTransaction>),
+                Err(err) => Err(err),
+            },
+            Database::STATE(_) => {
+                Ok(Box::new(DBTransactionState::new()) as Box<dyn transaction::DBTransaction>)
+            }
+        }
+    }
+}
+
+impl Database {
+    fn_get_repo!(get_user_repo, UserRepository, UserSQLRepo, UserStateRepo);
+    fn_get_repo!(
+        get_account_repo,
+        AccountRepository,
+        AccountSQLRepo,
+        AccountStateRepo
+    );
     fn_get_repo!(
         get_transaction_repo,
         TransactionRepository,
-        todo,
+        TransactionSQLRepo,
         TransactionStateRepo
     );
     fn_get_repo!(
         get_refresh_token_repo,
         RefreshTokenRepository,
-        todo,
+        RefreshTokenSQLRepo,
         RefreshTokenStateRepo
     );
 }

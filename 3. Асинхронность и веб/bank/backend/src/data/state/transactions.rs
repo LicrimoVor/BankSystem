@@ -1,8 +1,3 @@
-use async_trait::async_trait;
-use chrono::Utc;
-use std::sync::Arc;
-use uuid::Uuid;
-
 use crate::{
     domain::{
         account::Account,
@@ -10,6 +5,10 @@ use crate::{
     },
     infrastructure::{error::ErrorApi, state::State},
 };
+use async_trait::async_trait;
+use chrono::Utc;
+use std::sync::Arc;
+use uuid::Uuid;
 
 pub struct TransactionStateRepo(pub Arc<State>);
 
@@ -69,7 +68,7 @@ impl TransactionRepository for TransactionStateRepo {
     async fn delete(&mut self, transaction: &Transaction) -> Result<(), ErrorApi> {
         let mut transactions = self.0.transactions().await;
 
-        if let Some(from_id) = transaction.from() {
+        if let Some(from_id) = transaction.from_id() {
             let Some(trans) = transactions.get_mut(from_id) else {
                 return Err(ErrorApi::DataBase("Account not found".to_string()));
             };
@@ -77,7 +76,7 @@ impl TransactionRepository for TransactionStateRepo {
                 return Err(ErrorApi::DataBase("Transaction not found".to_string()));
             };
         }
-        if let Some(to_id) = transaction.to() {
+        if let Some(to_id) = transaction.to_id() {
             let Some(trans) = transactions.get_mut(to_id) else {
                 return Err(ErrorApi::DataBase("Account not found".to_string()));
             };

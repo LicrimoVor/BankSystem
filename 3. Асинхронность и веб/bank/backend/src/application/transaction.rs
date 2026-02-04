@@ -16,7 +16,7 @@ pub async fn deposit(
 ) -> Result<Transaction, ErrorApi> {
     info!("Depositing {} to account {}", amount, account_id);
     let mut repo_acc = db.clone().get_account_repo();
-    let mut repo_tran = db.get_transaction_repo();
+    let mut repo_tran = db.clone().get_transaction_repo();
     let Some(mut account) = repo_acc.get_by_id(account_id).await else {
         return Err(ErrorApi::Validation("Account not found".to_string()));
     };
@@ -29,10 +29,11 @@ pub async fn deposit(
     }
     account.set_balance(*account.balance() + amount);
 
-    // ТРАНЗАКЦИЯ!
+    let mut tx = db.transaction().await?;
     repo_acc.update(&account).await?;
-    repo_tran.create_deposit(amount, &account).await
-    // ТРАНЗАКЦИЯ!
+    let transaction = repo_tran.create_deposit(amount, &account).await?;
+    tx.commit().await?;
+    Ok(transaction)
 }
 
 pub async fn withdraw(
@@ -43,7 +44,7 @@ pub async fn withdraw(
 ) -> Result<Transaction, ErrorApi> {
     info!("Withdrawing {} from account {}", amount, account_id);
     let mut repo_acc = db.clone().get_account_repo();
-    let mut repo_tran = db.get_transaction_repo();
+    let mut repo_tran = db.clone().get_transaction_repo();
     let Some(mut account) = repo_acc.get_by_id(account_id).await else {
         return Err(ErrorApi::Validation("Account not found".to_string()));
     };
@@ -62,10 +63,12 @@ pub async fn withdraw(
     }
     account.set_balance(*account.balance() - amount);
 
-    // ТРАНЗАКЦИЯ!
+    let mut tx = db.transaction().await?;
     repo_acc.update(&account).await?;
-    repo_tran.create_withdrawal(amount, &account).await
-    // ТРАНЗАКЦИЯ!
+    let transaction = repo_tran.create_withdrawal(amount, &account).await?;
+    tx.commit().await?;
+
+    Ok(transaction)
 }
 
 pub async fn transfer(
@@ -80,7 +83,7 @@ pub async fn transfer(
         amount, from_account_id, to_account_id
     );
     let mut repo_acc = db.clone().get_account_repo();
-    let mut repo_tran = db.get_transaction_repo();
+    let mut repo_tran = db.clone().get_transaction_repo();
     let Some(mut from_account) = repo_acc.get_by_id(from_account_id).await else {
         return Err(ErrorApi::Validation("Account not found".to_string()));
     };
@@ -102,11 +105,13 @@ pub async fn transfer(
     from_account.set_balance(*from_account.balance() - amount);
     to_account.set_balance(*to_account.balance() + amount);
 
-    // ТРАНЗАКЦИЯ!
+    let mut tx = db.transaction().await?;
     repo_acc.update(&from_account).await?;
     repo_acc.update(&to_account).await?;
-    repo_tran
+    let transaction = repo_tran
         .create_transfer(amount, &from_account, &to_account)
-        .await
-    // ТРАНЗАКЦИЯ!
+        .await?;
+    tx.commit().await?;
+
+    Ok(transaction)
 }

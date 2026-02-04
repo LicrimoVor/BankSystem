@@ -1,7 +1,3 @@
-use async_trait::async_trait;
-use std::sync::Arc;
-use uuid::Uuid;
-
 use crate::{
     domain::{
         account::{self, Account, AccountRepository},
@@ -9,6 +5,9 @@ use crate::{
     },
     infrastructure::{error::ErrorApi, state::State},
 };
+use async_trait::async_trait;
+use std::sync::Arc;
+use uuid::Uuid;
 
 pub struct AccountStateRepo(pub Arc<State>);
 

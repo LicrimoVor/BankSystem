@@ -1,18 +1,20 @@
 use async_trait::async_trait;
 use getset::Getters;
 use serde::Serialize;
+use sqlx::prelude::FromRow;
 use uuid::Uuid;
 
 use crate::{domain::account::Account, impl_constructor, infrastructure::error::ErrorApi};
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Clone, sqlx::Type)]
+#[sqlx(type_name = "operation", rename_all = "lowercase")]
 pub enum Operation {
     DEPOSIT,
     WITHDRAWAL,
     TRANSFER,
 }
 
-#[derive(Debug, Serialize, Clone, Getters)]
+#[derive(Debug, Serialize, Getters, Clone, FromRow)]
 pub struct Transaction {
     #[getset(get = "pub")]
     id: Uuid,
@@ -25,11 +27,11 @@ pub struct Transaction {
 
     /// uuid account
     #[getset(get = "pub")]
-    from: Option<Uuid>,
+    from_id: Option<Uuid>,
 
     /// uuid account
     #[getset(get = "pub")]
-    to: Option<Uuid>,
+    to_id: Option<Uuid>,
 
     #[getset(get = "pub")]
     created_at: chrono::DateTime<chrono::Utc>,
@@ -73,8 +75,8 @@ pub mod factory {
             id,
             operation: Operation::DEPOSIT,
             amount,
-            from: None,
-            to: Some(to),
+            from_id: None,
+            to_id: Some(to),
             created_at,
         })
     }
@@ -94,8 +96,8 @@ pub mod factory {
             id,
             operation: Operation::WITHDRAWAL,
             amount,
-            from: Some(from),
-            to: None,
+            from_id: Some(from),
+            to_id: None,
             created_at,
         })
     }
@@ -123,8 +125,8 @@ pub mod factory {
             id,
             operation: Operation::TRANSFER,
             amount,
-            from: Some(from),
-            to: Some(to),
+            from_id: Some(from),
+            to_id: Some(to),
             created_at,
         })
     }

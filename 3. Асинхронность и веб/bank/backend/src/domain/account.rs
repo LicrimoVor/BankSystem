@@ -1,11 +1,12 @@
 use async_trait::async_trait;
 use getset::{Getters, Setters};
 use serde::Serialize;
+use sqlx::prelude::FromRow;
 use uuid::Uuid;
 
 use crate::{domain::user::User, impl_constructor, infrastructure::error::ErrorApi};
 
-#[derive(Debug, Serialize, Getters, Setters, Clone)]
+#[derive(Debug, Serialize, Getters, Setters, Clone, FromRow)]
 pub struct Account {
     /// Account id
     #[getset(get = "pub")]

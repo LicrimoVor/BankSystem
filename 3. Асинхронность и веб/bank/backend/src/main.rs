@@ -25,14 +25,17 @@ async fn main() -> std::io::Result<()> {
     init_logging();
 
     let cfg = Config::from_env().expect("invalid config");
-    // let pool = PgPoolOptions::new()
-    //     .max_connections(10)
-    //     .connect(&cfg.database_url)
-    //     .await
-    //     .expect("failed to connect to database");
+    let pool = PgPoolOptions::new()
+        .max_connections(10)
+        .connect(&cfg.database_url)
+        .await
+        .expect("failed to connect to database");
 
-    // info!("Running migrations");
-    // migrate::run(&pool).await.expect("migrations failed");
+    info!("Running migrations");
+    migrate::run(&pool)
+        .await
+        .map_err(|e| format!("Migration error: {}", e.to_string()))
+        .unwrap();
 
     let state = Arc::new(State::new());
     let db = Database::STATE(state);

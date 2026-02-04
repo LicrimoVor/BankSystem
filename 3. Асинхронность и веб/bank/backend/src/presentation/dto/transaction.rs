@@ -34,8 +34,8 @@ impl From<crate::domain::transaction::Transaction> for TransactionDto {
         Self {
             id: *transaction.id(),
             amount: *transaction.amount(),
-            from: *transaction.from(),
-            to: *transaction.to(),
+            from: *transaction.from_id(),
+            to: *transaction.to_id(),
             opeation: transaction.operation().clone(),
             created_at: *transaction.created_at(),
         }

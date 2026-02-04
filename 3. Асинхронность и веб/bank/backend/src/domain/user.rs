@@ -1,7 +1,8 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use getset::Getters;
+use getset::{Getters, Setters};
 use serde::Serialize;
+use sqlx::prelude::FromRow;
 use uuid::Uuid;
 
 use crate::{impl_constructor, infrastructure::error::ErrorApi};
@@ -9,7 +10,7 @@ use crate::{impl_constructor, infrastructure::error::ErrorApi};
 const EMAIL_REGEX: &str = r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+.[A-Za-z]{2,}$";
 const MIN_PASSWORD_LEN: usize = 8;
 
-#[derive(Debug, Serialize, Clone, Getters)]
+#[derive(Debug, Serialize, Getters, Setters, Clone, FromRow)]
 pub struct User {
     #[getset(get = "pub")]
     id: Uuid,

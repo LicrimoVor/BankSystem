@@ -2,11 +2,12 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use getset::{Getters, Setters};
 use serde::Serialize;
+use sqlx::prelude::FromRow;
 use uuid::Uuid;
 
 use crate::{impl_constructor, infrastructure::error::ErrorApi};
 
-#[derive(Debug, Serialize, Getters, Setters, Clone)]
+#[derive(Debug, Serialize, Getters, Setters, Clone, FromRow)]
 pub struct RefreshToken {
     #[getset(get = "pub", set = "pub")]
     refresh_token_hash: String,

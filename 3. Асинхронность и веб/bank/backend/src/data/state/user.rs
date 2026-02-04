@@ -1,12 +1,11 @@
-use async_trait::async_trait;
-use chrono::Utc;
-use std::sync::Arc;
-use uuid::Uuid;
-
 use crate::{
     domain::user::{self, User, UserRepository},
     infrastructure::{error::ErrorApi, state::State},
 };
+use async_trait::async_trait;
+use chrono::Utc;
+use std::sync::Arc;
+use uuid::Uuid;
 
 pub struct UserStateRepo(pub Arc<State>);
 
