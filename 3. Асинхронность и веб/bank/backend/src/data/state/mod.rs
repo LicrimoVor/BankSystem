@@ -3,6 +3,7 @@ use crate::infrastructure::error::ErrorApi;
 use async_trait::async_trait;
 use tracing::info;
 pub mod account;
+pub mod course;
 pub mod token;
 pub mod transactions;
 pub mod user;

@@ -3,11 +3,12 @@ mod data;
 mod domain;
 mod infrastructure;
 mod presentation;
+mod utils;
 
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 use actix_cors::Cors;
-use actix_session::{storage::CookieSessionStore, Session, SessionMiddleware};
+use actix_session::{storage::CookieSessionStore, SessionMiddleware};
 use actix_web::{cookie::Key, middleware::Logger, web, App, HttpServer};
 use sqlx::postgres::PgPoolOptions;
 use tracing::info;
@@ -30,6 +31,13 @@ async fn main() -> std::io::Result<()> {
         .connect(&cfg.database_url)
         .await
         .expect("failed to connect to database");
+
+    let client = reqwest::Client::builder()
+        .user_agent("bank-api/1.0")
+        .connect_timeout(Duration::from_secs(5))
+        .timeout(Duration::from_secs(15))
+        .build()
+        .expect("Failed to create HTTP client");
 
     info!("Running migrations");
     migrate::run(&pool)
@@ -68,6 +76,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(cors)
             .app_data(web::Data::new(db.clone()))
             .app_data(web::Data::new(cfg.clone()))
+            .app_data(web::Data::new(client.clone()))
             .configure(presentation::api::configure)
     })
     .bind(addr)?

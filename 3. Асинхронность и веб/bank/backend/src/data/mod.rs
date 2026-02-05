@@ -3,8 +3,9 @@ pub mod state;
 pub mod transaction;
 
 use crate::{
+    data::{sql::course::CourseSQLRepo, state::course::CourseStateRepo},
     domain::{
-        account::AccountRepository, token::RefreshTokenRepository,
+        account::AccountRepository, course::CourseRepository, token::RefreshTokenRepository,
         transaction::TransactionRepository, user::UserRepository,
     },
     infrastructure::{error::ErrorApi, state::State},
@@ -69,5 +70,11 @@ impl Database {
         RefreshTokenRepository,
         RefreshTokenSQLRepo,
         RefreshTokenStateRepo
+    );
+    fn_get_repo!(
+        get_course_repo,
+        CourseRepository,
+        CourseSQLRepo,
+        CourseStateRepo
     );
 }

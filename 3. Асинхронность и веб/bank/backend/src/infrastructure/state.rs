@@ -1,9 +1,9 @@
+use crate::domain::{
+    account::Account, course::Course, token::RefreshToken, transaction::Transaction, user::User,
+};
+use chrono::{DateTime, Utc};
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::{Mutex, MutexGuard};
-
-use crate::domain::{
-    account::Account, token::RefreshToken, transaction::Transaction, user::User,
-};
 
 #[derive(Debug, Clone)]
 pub struct State {
@@ -15,6 +15,8 @@ pub struct State {
     transactions: Arc<Mutex<HashMap<uuid::Uuid, HashMap<uuid::Uuid, Transaction>>>>,
     /// HashMap<refresh_token_hash, user_id>
     refresh_tokens: Arc<Mutex<HashMap<String, RefreshToken>>>,
+    /// HashMap<time_update_utc, course>
+    courses: Arc<Mutex<HashMap<DateTime<Utc>, Course>>>,
 }
 
 impl State {
@@ -24,6 +26,7 @@ impl State {
             accounts: Arc::new(Mutex::new(HashMap::new())),
             transactions: Arc::new(Mutex::new(HashMap::new())),
             refresh_tokens: Arc::new(Mutex::new(HashMap::new())),
+            courses: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
@@ -45,5 +48,9 @@ impl State {
 
     pub async fn refresh_tokens(&self) -> MutexGuard<'_, HashMap<String, RefreshToken>> {
         self.refresh_tokens.lock().await
+    }
+
+    pub async fn courses(&self) -> MutexGuard<'_, HashMap<DateTime<Utc>, Course>> {
+        self.courses.lock().await
     }
 }

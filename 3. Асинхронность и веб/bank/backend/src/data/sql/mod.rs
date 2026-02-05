@@ -4,6 +4,7 @@ use async_trait::async_trait;
 use sqlx::PgPool;
 use std::sync::Arc;
 pub mod account;
+pub mod course;
 pub mod token;
 pub mod transactions;
 pub mod user;

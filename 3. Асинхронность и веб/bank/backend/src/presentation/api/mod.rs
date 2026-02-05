@@ -1,10 +1,12 @@
 mod account;
+pub mod course;
 mod general;
 pub mod transaction;
 mod user;
 
 use account::configure as account_configure;
 use actix_web::web;
+use course::configure as course_configure;
 use general::configure as general_configure;
 use transaction::configure as transaction_configure;
 use user::configure as user_configure;
@@ -15,6 +17,7 @@ pub fn configure(cfg: &mut actix_web::web::ServiceConfig) {
             .configure(general_configure)
             .configure(user_configure)
             .configure(account_configure)
+            .configure(course_configure)
             .configure(transaction_configure),
     );
 }

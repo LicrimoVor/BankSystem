@@ -7,6 +7,7 @@ pub struct Config {
     pub port: u16,
     pub jwt_secret: String,
     pub cors_origin: String,
+    pub api_key: String,
 }
 
 impl Config {
@@ -18,6 +19,7 @@ impl Config {
             .parse()?;
         let jwt_secret = std::env::var("JWT_SECRET")?;
         let cors_origin = std::env::var("CORS_ORIGIN").unwrap_or_else(|_| "*".into());
+        let api_key = std::env::var("API_KEY")?;
 
         Ok(Self {
             database_url,
@@ -25,6 +27,7 @@ impl Config {
             port,
             jwt_secret,
             cors_origin,
+            api_key,
         })
     }
 }
