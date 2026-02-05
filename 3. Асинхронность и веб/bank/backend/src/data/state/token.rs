@@ -9,7 +9,6 @@ use crate::{
 use async_trait::async_trait;
 use chrono::Utc;
 use std::sync::Arc;
-use tracing::info;
 use uuid::Uuid;
 
 pub struct RefreshTokenStateRepo(pub Arc<State>);
@@ -45,9 +44,6 @@ impl RefreshTokenRepository for RefreshTokenStateRepo {
             return Err(ErrorApi::Inner("Hash error".to_string()));
         };
         let refresh_tokens = self.0.refresh_tokens().await;
-        info!("{:#?}", refresh_tokens);
-        info!("{:#?} - {:#?}", refresh_token, refresh_token_hash);
-
         let token = refresh_tokens
             .get(&refresh_token_hash)
             .cloned()

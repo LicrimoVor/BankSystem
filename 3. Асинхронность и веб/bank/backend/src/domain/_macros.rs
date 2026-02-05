@@ -2,7 +2,7 @@
 #[macro_export]
 macro_rules! impl_constructor {
     (token: $token:ident, $type:ident, ($($arg_name:ident: $arg_ty:ty), *)) => {
-        struct $token;
+        pub struct $token;
 
         impl $type {
             /// Создание объекта
@@ -10,7 +10,7 @@ macro_rules! impl_constructor {
             /// const token = get_token();
             /// const account = Account::new(token, id, user_id, balance);
             /// ```
-            fn new(_token: $token, $($arg_name: $arg_ty), *) -> Self {
+            pub fn new(_token: $token, $($arg_name: $arg_ty), *) -> Self {
                 $type {
                     $($arg_name),*
                 }

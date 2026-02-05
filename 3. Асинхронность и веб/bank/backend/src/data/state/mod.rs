@@ -1,4 +1,4 @@
-use super::transaction::DBTransaction;
+use super::transaction::DBTransactionTrait;
 use crate::infrastructure::error::ErrorApi;
 use async_trait::async_trait;
 use tracing::info;
@@ -16,7 +16,7 @@ impl DBTransactionState {
 }
 
 #[async_trait]
-impl DBTransaction for DBTransactionState {
+impl DBTransactionTrait for DBTransactionState {
     async fn commit(&mut self) -> Result<(), ErrorApi> {
         info!("transaction commit");
         Ok(())

@@ -29,7 +29,7 @@ pub async fn deposit(
     }
     account.set_balance(*account.balance() + amount);
 
-    let mut tx = db.transaction().await?;
+    let tx = db.transaction().await?;
     repo_acc.update(&account).await?;
     let transaction = repo_tran.create_deposit(amount, &account).await?;
     tx.commit().await?;
@@ -43,6 +43,7 @@ pub async fn withdraw(
     amount: f64,
 ) -> Result<Transaction, ErrorApi> {
     info!("Withdrawing {} from account {}", amount, account_id);
+    let mut tx = db.clone().transaction().await?;
     let mut repo_acc = db.clone().get_account_repo();
     let mut repo_tran = db.clone().get_transaction_repo();
     let Some(mut account) = repo_acc.get_by_id(account_id).await else {

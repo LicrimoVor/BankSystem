@@ -38,7 +38,9 @@ async fn main() -> std::io::Result<()> {
         .unwrap();
 
     let state = Arc::new(State::new());
-    let db = Database::STATE(state);
+
+    // let db = Database::STATE(state);
+    let db = Database::PgSQL(Arc::new(pool));
     let addr = format!("{}:{}", cfg.host, cfg.port);
     info!("Listening on http://{}", addr);
 

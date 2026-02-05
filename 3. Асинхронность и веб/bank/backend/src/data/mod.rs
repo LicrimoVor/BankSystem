@@ -19,6 +19,7 @@ use state::{
     user::UserStateRepo, DBTransactionState,
 };
 use std::sync::Arc;
+use transaction::DBTransaction;
 
 #[derive(Clone, Debug)]
 pub enum Database {
@@ -38,17 +39,13 @@ macro_rules! fn_get_repo {
 }
 
 impl Database {
-    pub async fn transaction(
-        self: Arc<Self>,
-    ) -> Result<Box<dyn transaction::DBTransaction>, ErrorApi> {
+    pub async fn transaction(self: Arc<Self>) -> Result<DBTransaction, ErrorApi> {
         match self.as_ref() {
             Database::PgSQL(pool) => match DBTransactionSQL::new(pool.clone()).await {
-                Ok(tx) => Ok(Box::new(tx) as Box<dyn transaction::DBTransaction>),
+                Ok(tx) => Ok(DBTransaction::SQL(tx)),
                 Err(err) => Err(err),
             },
-            Database::STATE(_) => {
-                Ok(Box::new(DBTransactionState::new()) as Box<dyn transaction::DBTransaction>)
-            }
+            Database::STATE(_) => Ok(DBTransaction::STATE(DBTransactionState::new())),
         }
     }
 }

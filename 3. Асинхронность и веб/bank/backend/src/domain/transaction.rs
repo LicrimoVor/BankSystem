@@ -1,7 +1,6 @@
 use async_trait::async_trait;
 use getset::Getters;
 use serde::Serialize;
-use sqlx::prelude::FromRow;
 use uuid::Uuid;
 
 use crate::{domain::account::Account, impl_constructor, infrastructure::error::ErrorApi};
@@ -14,7 +13,7 @@ pub enum Operation {
     TRANSFER,
 }
 
-#[derive(Debug, Serialize, Getters, Clone, FromRow)]
+#[derive(Debug, Serialize, Getters, Clone)]
 pub struct Transaction {
     #[getset(get = "pub")]
     id: Uuid,
@@ -55,6 +54,14 @@ pub trait TransactionRepository: Send + Sync {
     async fn get_by_id(&self, id: Uuid) -> Option<Transaction>;
     async fn gets_by_account(&self, account: &Account) -> Option<Vec<Transaction>>;
 }
+impl_constructor!(token: TransactionToken, Transaction, (
+    id: Uuid,
+    operation: Operation,
+    amount: f64,
+    from_id: Option<Uuid>,
+    to_id: Option<Uuid>,
+    created_at: chrono::DateTime<chrono::Utc>
+));
 
 pub mod factory {
     use super::*;

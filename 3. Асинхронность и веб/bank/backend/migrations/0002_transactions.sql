@@ -1,17 +1,24 @@
-CREATE TYPE operation AS ENUM (
-    'deposit',
-    'withdrawal',
-    'transfer'
-);
-
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_type WHERE typname = 'operation'
+    ) THEN
+        CREATE TYPE operation AS ENUM (
+            'deposit',
+            'withdrawal',
+            'transfer'
+        );
+    END IF;
+END
+$$;
 
 CREATE TABLE IF NOT EXISTS transactions (
     id UUID PRIMARY KEY,
     operation operation NOT NULL,
-    amount NUMERIC NOT NULL,
+    amount DOUBLE PRECISION NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    from_id UUID NOT NULL,
-    to_id UUID NOT NULL,
+    from_id UUID,
+    to_id UUID,
 
     CONSTRAINT fk_to_user
         FOREIGN KEY (from_id)

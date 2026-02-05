@@ -27,12 +27,12 @@ pub trait AccountRepository: Send + Sync {
         -> Result<Account, ErrorApi>;
     async fn update(&mut self, account: &Account) -> Result<(), ErrorApi>;
     async fn delete(&mut self, account: &Account) -> Result<(), ErrorApi>;
+
     async fn get_by_id(&self, id: Uuid) -> Option<Account>;
     async fn gets_by_user(&self, user: &User) -> Option<Vec<Account>>;
 }
 
-// impl_constructor!(token: AccountToken, Account, (id: Uuid, user_id: Uuid, balance: f64));
-// impl_constructor!(factory: Account, (id: Uuid, user_id: Uuid, balance: f64));
+impl_constructor!(token: AccountToken, Account, (id: Uuid, user_id: Uuid, balance: f64));
 
 pub mod factory {
     use super::*;

@@ -2,12 +2,11 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use getset::{Getters, Setters};
 use serde::Serialize;
-use sqlx::prelude::FromRow;
 use uuid::Uuid;
 
 use crate::{impl_constructor, infrastructure::error::ErrorApi};
 
-#[derive(Debug, Serialize, Getters, Setters, Clone, FromRow)]
+#[derive(Debug, Serialize, Getters, Setters, Clone)]
 pub struct RefreshToken {
     #[getset(get = "pub", set = "pub")]
     refresh_token_hash: String,
@@ -33,6 +32,12 @@ pub trait RefreshTokenRepository: Send + Sync {
     async fn delete(&mut self, refresh_token: String) -> Result<RefreshToken, ErrorApi>;
     async fn get(&self, refresh_token: String) -> Result<RefreshToken, ErrorApi>;
 }
+
+impl_constructor!(token: RefreshTokenToken, RefreshToken, (
+    refresh_token_hash: String,
+    user_id: Uuid,
+    expires_at: DateTime<Utc>
+));
 
 pub mod factory {
     use super::*;

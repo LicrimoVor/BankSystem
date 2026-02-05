@@ -1,4 +1,4 @@
-use super::transaction::DBTransaction;
+use super::transaction::DBTransactionTrait;
 use crate::infrastructure::error::ErrorApi;
 use async_trait::async_trait;
 use sqlx::PgPool;
@@ -21,7 +21,7 @@ impl DBTransactionSQL {
 }
 
 #[async_trait]
-impl DBTransaction for DBTransactionSQL {
+impl DBTransactionTrait for DBTransactionSQL {
     async fn commit(&mut self) -> Result<(), ErrorApi> {
         let Some(tx) = self.0.take() else {
             return Err(ErrorApi::DataBase("Transaction not found".to_string()));
