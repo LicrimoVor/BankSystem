@@ -73,8 +73,11 @@ where
         Box::pin(async move {
             let mut res = fut.await?;
             if is_created {
-                res.response_mut()
-                    .add_cookie(&Cookie::build(CSRF_TOKEN_COOKIE, csrf_token).finish())?;
+                res.response_mut().add_cookie(
+                    &Cookie::build(CSRF_TOKEN_COOKIE, csrf_token)
+                        .path("/api")
+                        .finish(),
+                )?;
             }
             Ok(res)
         })

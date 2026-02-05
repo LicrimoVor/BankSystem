@@ -9,6 +9,7 @@ use async_trait::async_trait;
 use chrono::Utc;
 use sqlx::{prelude::FromRow, PgPool};
 use std::sync::Arc;
+use tracing::info;
 use uuid::Uuid;
 
 #[derive(Debug, FromRow)]
@@ -45,6 +46,7 @@ impl TransactionRepository for TransactionSQLRepo {
         let created_at = Utc::now();
 
         let tx = transaction::factory::create_deposit(id, amount, *to.id(), created_at)?;
+        info!("{:#?}", tx);
 
         let row = sqlx::query_as!(
             TransactionRow,

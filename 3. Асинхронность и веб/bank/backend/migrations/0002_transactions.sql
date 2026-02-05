@@ -22,11 +22,11 @@ CREATE TABLE IF NOT EXISTS transactions (
 
     CONSTRAINT fk_to_user
         FOREIGN KEY (from_id)
-        REFERENCES users(id),
+        REFERENCES accounts(id),
     
     CONSTRAINT fk_from_user
         FOREIGN KEY (to_id)
-        REFERENCES users(id)
+        REFERENCES accounts(id)
 );
 
 
