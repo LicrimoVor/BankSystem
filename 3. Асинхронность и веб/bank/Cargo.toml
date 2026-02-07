@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["backend", "exchange"]
+members = ["backend", "exchange", "web"]
 
 [workspace.dependencies]
 rand = "0.9"
