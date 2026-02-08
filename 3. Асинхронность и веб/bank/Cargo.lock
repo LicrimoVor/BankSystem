@@ -4311,6 +4311,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "wasm32"
+version = "0.1.0"
+dependencies = [
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "web"
 version = "0.1.0"
 dependencies = [
