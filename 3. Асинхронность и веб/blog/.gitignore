@@ -1,0 +1,4 @@
+.env
+/target
+/backend/data
+/backend/media
