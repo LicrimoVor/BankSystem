@@ -1,3 +1,4 @@
+use crate::infrastructure::errors::ErrorBlog;
 use crate::infrastructure::state::State;
 
 /// База данных приложения
@@ -10,7 +11,7 @@ pub enum Database {
 /// Макрос для генерации методов получения сервисов из базы данных  
 macro_rules! impl_get_service {
     ($name:ident, $repo_trait:ident, $repo_postgres:ident, $repo_memory:ident) => {
-        pub async fn $name(self: Arc<Self>) -> Result<Box<dyn $repo_trait>, anyhow::Error> {
+        pub async fn $name(self: Arc<Self>) -> Result<Box<dyn $repo_trait>, ErrorBlog> {
             match self.as_ref() {
                 Database::Postgres(connection) => {
                     let repo =

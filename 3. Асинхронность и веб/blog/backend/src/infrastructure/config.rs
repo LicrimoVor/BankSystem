@@ -1,4 +1,4 @@
-use tracing::{debug, info};
+use tracing::info;
 
 /// Конфигурация приложения
 pub struct Config {

@@ -1,8 +1,12 @@
-use crate::infrastructure::errors::ErrorBlog;
+use crate::infrastructure::{errors::ErrorBlog, security::generate_password_hash};
 use getset::{Getters, Setters};
-use tracing::warn;
 use uuid::Uuid;
 
+const MIN_PASSWORD_LENGTH: usize = 8;
+const MAX_PASSWORD_LENGTH: usize = 128;
+const EMAIL_REGEX: &str = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$";
+
+/// Пользователь
 #[derive(Debug, Clone, Getters, Setters)]
 pub struct User {
     #[getset(get = "pub")]
@@ -19,9 +23,17 @@ pub struct User {
 
 impl User {
     pub fn change_password(&mut self, new_password: String) -> Result<(), ErrorBlog> {
-        warn!("!!!");
-        let new_password_hash = new_password;
-        self.password_hash = new_password_hash;
+        if new_password.len() < MIN_PASSWORD_LENGTH {
+            return Err(ErrorBlog::Validation(
+                "Password must be at least 8 characters long".to_string(),
+            ));
+        }
+        if new_password.len() > MAX_PASSWORD_LENGTH {
+            return Err(ErrorBlog::Validation(
+                "Password must be at most 128 characters long".to_string(),
+            ));
+        }
+        self.password_hash = generate_password_hash(new_password.as_str())?;
         Ok(())
     }
 }
@@ -45,8 +57,23 @@ pub mod factory {
 
     pub fn create(username: String, email: String, password: String) -> Result<User, ErrorBlog> {
         let id = Uuid::new_v4();
-        warn!("!!!");
-        let password_hash = password;
+        if password.len() < MIN_PASSWORD_LENGTH {
+            return Err(ErrorBlog::Validation(
+                "Password must be at least 8 characters long".to_string(),
+            ));
+        }
+        if password.len() > MAX_PASSWORD_LENGTH {
+            return Err(ErrorBlog::Validation(
+                "Password must be at most 128 characters long".to_string(),
+            ));
+        }
+        if !regex::Regex::new(EMAIL_REGEX)
+            .unwrap()
+            .is_match(email.as_str())
+        {
+            return Err(ErrorBlog::Validation("Invalid email format".to_string()));
+        }
+        let password_hash = generate_password_hash(password.as_str())?;
         Ok(User {
             id,
             username,

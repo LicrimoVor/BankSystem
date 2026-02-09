@@ -27,3 +27,10 @@ async-trait = "0.1"
 chrono = { version = "0.4", features = ["serde"] }
 dotenvy = "0.15"
 migration = { path = "./migration" }
+regex = "1.12"
+hex = "0.4"
+jsonwebtoken = "10.3"
+rand = "0.10"
+tonic = "0.14"
+prost = "0.14"
+prost-types = "0.14"
