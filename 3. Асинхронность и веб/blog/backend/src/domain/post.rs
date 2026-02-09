@@ -23,15 +23,17 @@ pub struct Post {
 
 #[async_trait::async_trait]
 pub trait PostRepository {
-    async fn create_post(
+    async fn create(
         &self,
         title: String,
         content: String,
         author_id: Uuid,
+        img_path: Option<String>,
     ) -> Result<Post, ErrorBlog>;
-    async fn update_post(&self, post_id: Uuid, post: Post) -> Result<Post, ErrorBlog>;
-    async fn get_post_by_id(&self, post_id: Uuid) -> Result<Option<Post>, ErrorBlog>;
-    async fn get_posts_by_author(&self, author_id: Uuid) -> Result<Vec<Post>, ErrorBlog>;
+    async fn update(&self, post_id: Uuid, post: Post) -> Result<Post, ErrorBlog>;
+    async fn delete(&self, post_id: Uuid) -> Result<Post, ErrorBlog>;
+    async fn get_by_id(&self, post_id: Uuid) -> Result<Option<Post>, ErrorBlog>;
+    async fn gets_by_author(&self, author_id: Uuid) -> Result<Vec<Post>, ErrorBlog>;
 }
 
 pub mod factory {

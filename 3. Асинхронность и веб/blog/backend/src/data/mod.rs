@@ -1,8 +1,10 @@
-pub mod memory;
-pub mod postgres;
-use self::memory::user::UserStateRepo;
-use self::postgres::user::UserPostgresRepo;
-use crate::domain::user::UserRepository;
+mod memory;
+mod postgres;
+use self::{
+    memory::{post::PostStateRepo, user::UserStateRepo},
+    postgres::{post::PostPostgresRepo, user::UserPostgresRepo},
+};
+use crate::domain::{post::PostRepository, user::UserRepository};
 use crate::infrastructure::state::State;
 use std::sync::Arc;
 
@@ -36,5 +38,10 @@ impl Database {
         UserPostgresRepo,
         UserStateRepo
     );
-    // impl_get_service!(get_post_service, PostRepository, PostRepositoryPostgres, PostRepositoryMemory);
+    impl_get_service!(
+        get_post_service,
+        PostRepository,
+        PostPostgresRepo,
+        PostStateRepo
+    );
 }

@@ -11,7 +11,7 @@ sea-orm = { version = "2.0.0-rc.30", features = [
     "macros",
     "with-uuid",
 ] }
-axum = "0.8"
+axum = { version = "0.8", features = ['tokio'] }
 tokio = { workspace = true, features = ["full"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
@@ -34,3 +34,8 @@ rand = "0.10"
 tonic = "0.14"
 prost = "0.14"
 prost-types = "0.14"
+tower-http = { version = "0.6", features = ["cors"] }
+tonic-prost = "0.14"
+
+[build-dependencies]
+tonic-prost-build = "0.14"

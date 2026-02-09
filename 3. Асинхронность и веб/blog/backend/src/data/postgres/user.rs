@@ -28,7 +28,7 @@ pub struct UserPostgresRepo(pub sea_orm::DatabaseConnection);
 
 #[async_trait::async_trait]
 impl UserRepository for UserPostgresRepo {
-    async fn create_user(
+    async fn create(
         &self,
         username: String,
         email: String,
@@ -38,22 +38,27 @@ impl UserRepository for UserPostgresRepo {
         unimplemented!()
     }
 
-    async fn update_user(&self, user_id: Uuid, user: User) -> Result<User, ErrorBlog> {
+    async fn delete(&self, user_id: Uuid) -> Result<User, ErrorBlog> {
+        // Реализовать удаление пользователя из базы данных PostgreSQL
+        unimplemented!()
+    }
+
+    async fn update(&self, user_id: Uuid, user: User) -> Result<User, ErrorBlog> {
         // Реализовать обновление пользователя в базе данных PostgreSQL
         unimplemented!()
     }
 
-    async fn get_user_by_id(&self, user_id: Uuid) -> Result<Option<User>, ErrorBlog> {
+    async fn get_by_id(&self, user_id: Uuid) -> Result<Option<User>, ErrorBlog> {
         // Реализовать получение пользователя по ID из базы данных PostgreSQL
         unimplemented!()
     }
 
-    async fn get_user_by_email(&self, email: String) -> Result<Option<User>, ErrorBlog> {
+    async fn get_by_email(&self, email: String) -> Result<Option<User>, ErrorBlog> {
         // Реализовать получение пользователя по email из базы данных PostgreSQL
         unimplemented!()
     }
 
-    async fn get_user_by_username(&self, username: String) -> Result<Option<User>, ErrorBlog> {
+    async fn get_by_username(&self, username: String) -> Result<Option<User>, ErrorBlog> {
         // Реализовать получение пользователя по username из базы данных PostgreSQL
         unimplemented!()
     }

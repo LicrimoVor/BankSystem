@@ -1,1 +1,7 @@
 syntax = "proto3";
+package post;
+
+// Сервис постов
+service PostService {
+
+}

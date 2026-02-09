@@ -8,6 +8,7 @@ pub struct Config {
     pub port_api: u16,
     pub port_grps: u16,
     pub host: String,
+    pub cors_origin: String,
 }
 
 impl Config {
@@ -18,6 +19,8 @@ impl Config {
         let port_api = std::env::var("PORT_API")?.parse::<u16>()?;
         let port_grps = std::env::var("PORT_GRPS")?.parse::<u16>()?;
         let host = std::env::var("HOST")?;
+        let cors_origin =
+            std::env::var("CORS_ORIGIN").unwrap_or_else(|_| format!("http://{}", host));
 
         info!("Successfully loaded configuration");
         Ok(Self {
@@ -27,6 +30,7 @@ impl Config {
             port_api,
             port_grps,
             host,
+            cors_origin,
         })
     }
 }
