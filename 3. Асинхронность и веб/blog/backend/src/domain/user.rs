@@ -39,15 +39,15 @@ impl User {
 }
 
 #[async_trait::async_trait]
-pub trait UserRepository {
+pub trait UserRepository: Send + Sync {
     async fn create_user(
         &self,
         username: String,
         email: String,
         password_hash: String,
     ) -> Result<User, ErrorBlog>;
-    async fn update_user(&self, user_id: i32, user: User) -> Result<User, ErrorBlog>;
-    async fn get_user_by_id(&self, user_id: i32) -> Result<Option<User>, ErrorBlog>;
+    async fn update_user(&self, user_id: Uuid, user: User) -> Result<User, ErrorBlog>;
+    async fn get_user_by_id(&self, user_id: Uuid) -> Result<Option<User>, ErrorBlog>;
     async fn get_user_by_email(&self, email: String) -> Result<Option<User>, ErrorBlog>;
     async fn get_user_by_username(&self, username: String) -> Result<Option<User>, ErrorBlog>;
 }
@@ -81,5 +81,22 @@ pub mod factory {
             password_hash,
             created_at: chrono::Utc::now(),
         })
+    }
+
+    /// Использовать только для создания объекта из данных, полученных из базы данных
+    pub fn from_database(
+        id: Uuid,
+        username: String,
+        email: String,
+        password_hash: String,
+        created_at: chrono::DateTime<chrono::Utc>,
+    ) -> User {
+        User {
+            id,
+            username,
+            email,
+            password_hash,
+            created_at,
+        }
     }
 }

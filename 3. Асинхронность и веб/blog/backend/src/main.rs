@@ -1,3 +1,4 @@
+use std::sync::Arc;
 pub(crate) mod data;
 pub(crate) mod domain;
 pub(crate) mod infrastructure;
@@ -18,7 +19,7 @@ async fn main() -> anyhow::Result<()> {
             infrastructure::migrations::run_migrations(&connection).await?;
             data::Database::Postgres(connection)
         } else {
-            data::Database::Memory(infrastructure::state::State::new())
+            data::Database::Memory(Arc::new(infrastructure::state::State::new()))
         }
     };
 

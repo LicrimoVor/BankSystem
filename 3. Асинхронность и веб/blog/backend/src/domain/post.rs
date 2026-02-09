@@ -12,6 +12,8 @@ pub struct Post {
     #[getset(get = "pub", set = "pub")]
     content: String,
     #[getset(get = "pub")]
+    img_path: Option<String>,
+    #[getset(get = "pub")]
     author_id: Uuid,
     #[getset(get = "pub", set = "pub")]
     updated_at: chrono::DateTime<chrono::Utc>,
@@ -35,16 +37,43 @@ pub trait PostRepository {
 pub mod factory {
     use super::*;
 
-    pub fn create(title: String, content: String, author_id: Uuid) -> Result<Post, ErrorBlog> {
+    pub fn create(
+        title: String,
+        content: String,
+        author_id: Uuid,
+        img_path: Option<String>,
+    ) -> Result<Post, ErrorBlog> {
         let id = Uuid::new_v4();
         let now = chrono::Utc::now();
         Ok(Post {
             id,
             title,
+            img_path,
             content,
             author_id,
             updated_at: now.clone(),
             created_at: now,
         })
+    }
+
+    /// Использовать только для создания объекта из данных, полученных из базы данных
+    pub fn from_database(
+        id: Uuid,
+        title: String,
+        content: String,
+        author_id: Uuid,
+        img_path: Option<String>,
+        created_at: chrono::DateTime<chrono::Utc>,
+        updated_at: chrono::DateTime<chrono::Utc>,
+    ) -> Post {
+        Post {
+            id,
+            title,
+            content,
+            author_id,
+            img_path,
+            created_at,
+            updated_at,
+        }
     }
 }

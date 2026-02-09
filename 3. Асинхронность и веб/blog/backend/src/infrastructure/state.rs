@@ -5,6 +5,7 @@ use uuid::Uuid;
 
 /// Модуль, отвечающий за состояние приложения
 /// в случае использования in-memory БД
+#[derive(Debug, Clone)]
 pub struct State {
     /// Хранилище пользователей
     /// {user_id: User}
