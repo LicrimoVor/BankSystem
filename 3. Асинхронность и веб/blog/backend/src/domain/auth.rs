@@ -11,7 +11,7 @@ pub struct JwtToken(String);
 
 impl JwtToken {
     pub fn generate(secret: &str, user_id: &Uuid) -> Result<Self, ErrorBlog> {
-        generate_jwt_token(secret, &user_id.to_string()).map(Self)
+        generate_jwt_token(secret, user_id.clone()).map(Self)
     }
 
     pub fn verify(&self) -> Result<Claims, ErrorBlog> {

@@ -7,6 +7,7 @@ use chrono::{Duration, Utc};
 use rand::{RngExt, distr::Alphanumeric};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use uuid::Uuid;
 
 pub const REFRESH_TOKEN_DURATION: Duration = Duration::days(31 * 5);
 pub const JWT_TOKEN_DURATION: Duration = Duration::hours(3);
@@ -39,16 +40,16 @@ pub fn generate_hash(plain: &str) -> Result<String, ErrorBlog> {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
-    pub sub: String,
+    pub sub: Uuid,
     pub iat: i64,
     pub exp: i64,
 }
 
-pub fn generate_jwt_token(sercret: &str, user_id: &str) -> Result<String, ErrorBlog> {
+pub fn generate_jwt_token(sercret: &str, user_id: Uuid) -> Result<String, ErrorBlog> {
     let now = Utc::now();
     let exp = now + JWT_TOKEN_DURATION;
     let claims = Claims {
-        sub: user_id.to_string(),
+        sub: user_id,
         iat: now.timestamp(),
         exp: exp.timestamp(),
     };
