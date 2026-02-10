@@ -7,7 +7,7 @@ use crate::{
 use std::sync::Arc;
 use uuid::Uuid;
 
-struct PostService(pub Arc<Database>);
+pub struct PostService(pub Arc<Database>);
 
 impl PostService {
     pub async fn create(

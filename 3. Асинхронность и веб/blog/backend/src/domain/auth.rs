@@ -7,7 +7,7 @@ use crate::infrastructure::{
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct JwtToken(String);
+pub struct JwtToken(pub String);
 
 impl JwtToken {
     pub fn generate(secret: &str, user_id: &Uuid) -> Result<Self, ErrorBlog> {
@@ -26,16 +26,12 @@ impl From<String> for JwtToken {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
-pub struct RefreshToken(String);
+pub struct RefreshToken(pub String);
 
 impl RefreshToken {
     /// ИСПОЛЬЗОВАТЬ ТОЛЬКО В DATABASE РЕПОЗИТОРИЯХ
     pub fn generate() -> Self {
         Self(generate_refresh_token())
-    }
-
-    pub fn verify(&self) -> Result<Claims, ErrorBlog> {
-        verify_jwt_token(&self.0)
     }
 }
 

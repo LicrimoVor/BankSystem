@@ -22,6 +22,12 @@ pub enum ErrorBlog {
     Internal(String),
 }
 
+impl From<axum::http::Error> for ErrorBlog {
+    fn from(err: axum::http::Error) -> Self {
+        ErrorBlog::Internal(err.to_string())
+    }
+}
+
 impl From<sqlx::Error> for ErrorBlog {
     fn from(err: sqlx::Error) -> Self {
         ErrorBlog::Database(err.to_string())

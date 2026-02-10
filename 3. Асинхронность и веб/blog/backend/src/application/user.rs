@@ -3,19 +3,9 @@ use crate::{
 };
 use std::sync::Arc;
 
-struct UserService(pub Arc<Database>);
+pub struct UserService(pub Arc<Database>);
 
 impl UserService {
-    pub async fn register(
-        &self,
-        username: String,
-        email: String,
-        password: String,
-    ) -> Result<User, ErrorBlog> {
-        let user_repo = self.0.get_user_repo().await;
-        user_repo.create(username, email, password).await
-    }
-
     pub async fn get_by_id(&self, user_id: uuid::Uuid) -> Result<User, ErrorBlog> {
         let user_repo = self.0.get_user_repo().await;
         user_repo

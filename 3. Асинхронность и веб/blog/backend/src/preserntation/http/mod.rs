@@ -13,7 +13,13 @@ use axum::http::{HeaderValue, Method, header};
 use std::sync::Arc;
 use tower_http::cors::CorsLayer;
 
-pub fn router_init(config: &Config, database: Arc<Database>) -> Result<axum::Router> {
+#[derive(Clone)]
+pub struct AppState {
+    pub database: Arc<Database>,
+    pub config: Arc<Config>,
+}
+
+pub fn http_init(config: Arc<Config>, database: Arc<Database>) -> Result<axum::Router> {
     let origin = config.cors_origin.parse::<HeaderValue>()?;
     let cors_layer = CorsLayer::new()
         .allow_credentials(true)
@@ -26,15 +32,15 @@ pub fn router_init(config: &Config, database: Arc<Database>) -> Result<axum::Rou
             header::HeaderName::from_static(HEADER_CSRF_TOKEN),
         ])
         .max_age(MAX_AGE_CORS);
+    let app_state = AppState { database, config };
 
     Ok(axum::Router::new()
+        .nest("/auth", api::auth::router())
         .layer(TimeLayer)
         .layer(RequestIdLayer)
         .layer(cors_layer)
         .layer(CsrfLayer)
         // Уместен ли он тут? Или все в UserIdExtracor делать
         .layer(JwtLayer)
-        .with_state(database))
-    // .merge(post::router())
-    // .merge(user::router())
+        .with_state(app_state))
 }

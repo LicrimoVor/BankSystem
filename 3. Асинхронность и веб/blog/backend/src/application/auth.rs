@@ -9,9 +9,26 @@ use crate::{
 use std::sync::Arc;
 use uuid::Uuid;
 
-struct AuthService(pub Arc<Database>);
+pub struct AuthService(pub Arc<Database>);
 
 impl AuthService {
+    pub async fn register(
+        &self,
+        config: Arc<Config>,
+        username: String,
+        email: String,
+        password: String,
+    ) -> Result<(User, RefreshToken, JwtToken), ErrorBlog> {
+        let user_repo = self.0.get_user_repo().await;
+        let user = user_repo.create(username, email, password).await?;
+
+        let mut auth_repo = self.0.get_auth_repo().await;
+        let refresh_token = auth_repo.create_refresh_token(user.id().clone()).await?;
+        let jwt_token = JwtToken::generate(config.jwt_secret.as_str(), user.id())?;
+
+        Ok((user, refresh_token, jwt_token))
+    }
+
     pub async fn login(
         &self,
         config: Arc<Config>,
@@ -36,13 +53,11 @@ impl AuthService {
         Ok((user, refresh_token, jwt_token))
     }
 
-    pub async fn logout(&self, user_id: Uuid, refresh_token: String) -> Result<(), ErrorBlog> {
+    pub async fn logout(&self, user_id: Uuid, refresh: RefreshToken) -> Result<(), ErrorBlog> {
         let mut auth_repo = self.0.get_auth_repo().await;
 
         // ТРАНЗАКЦИЯ НАЧАЛО
-        let user = auth_repo
-            .delete_refresh_token(RefreshToken::from(refresh_token))
-            .await?;
+        let user = auth_repo.delete_refresh_token(refresh).await?;
         if user != user_id {
             // ТРАНЗАКЦИЯ ОТМЕНЯЕТСЯ
             return Err(ErrorBlog::Unauthorized("Invalid refresh token".to_string()));
@@ -54,11 +69,11 @@ impl AuthService {
     pub async fn refresh(
         &self,
         config: Arc<Config>,
-        refresh_token: String,
+        refresh: RefreshToken,
     ) -> Result<JwtToken, ErrorBlog> {
         let auth_repo = self.0.get_auth_repo().await;
         let user_id = auth_repo
-            .get_refresh_token(RefreshToken::from(refresh_token))
+            .get_refresh_token(refresh)
             .await
             .ok_or_else(|| ErrorBlog::Unauthorized("Invalid refresh token".to_string()))?;
 

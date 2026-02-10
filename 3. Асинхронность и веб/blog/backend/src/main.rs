@@ -3,7 +3,7 @@ use crate::{
     infrastructure::{
         config::Config, database::create_connection, logging::logging_init, state::State,
     },
-    preserntation::{grps::grps_init, http::router_init},
+    preserntation::{grps::grps_init, http::http_init},
 };
 use std::sync::Arc;
 pub(crate) mod application;
@@ -22,7 +22,7 @@ async fn main() -> anyhow::Result<()> {
     dotenvy::dotenv().ok();
     logging_init();
 
-    let config = Config::from_env()?;
+    let config = Arc::new(Config::from_env()?);
     let database = {
         if !IS_DEV {
             let connection = create_connection(&config).await?;
@@ -35,11 +35,11 @@ async fn main() -> anyhow::Result<()> {
     let listener = tokio::net::TcpListener::bind(format!("{}:{}", config.host, config.port_api))
         .await
         .expect("Failed to bind to address");
-    let http_router = router_init(&config, database.clone())?;
+    let http_router = http_init(config.clone(), database.clone())?;
     let http_server = async { axum::serve(listener, http_router).await };
 
     let grps_addr = format!("{}:{}", config.host, config.port_grps).parse()?;
-    let grps_router = grps_init(&config, database.clone())?;
+    let grps_router = grps_init(config.clone(), database.clone())?;
     let grps_server = async { grps_router.serve(grps_addr).await };
     let (grps, server) = tokio::join!(grps_server, http_server);
     grps.unwrap();
