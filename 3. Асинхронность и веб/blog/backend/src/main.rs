@@ -11,6 +11,7 @@ pub(crate) mod data;
 pub(crate) mod domain;
 pub(crate) mod infrastructure;
 pub(crate) mod preserntation;
+pub(crate) mod utils;
 
 /// Флаг, указывающий на режим разработки
 /// (можно подтягивать из конфига, но для простоты оставим константой)

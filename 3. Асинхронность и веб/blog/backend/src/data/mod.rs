@@ -1,10 +1,11 @@
 mod memory;
 mod postgres;
+pub mod transaction;
 use self::{
-    memory::{post::PostStateRepo, user::UserStateRepo},
-    postgres::{post::PostPostgresRepo, user::UserPostgresRepo},
+    memory::{auth::AuthStateRepo, post::PostStateRepo, user::UserStateRepo},
+    postgres::{auth::AuthPostgresRepo, post::PostPostgresRepo, user::UserPostgresRepo},
 };
-use crate::domain::{post::PostRepository, user::UserRepository};
+use crate::domain::{auth::AuthRepository, post::PostRepository, user::UserRepository};
 use crate::infrastructure::state::State;
 use std::sync::Arc;
 
@@ -16,10 +17,10 @@ pub enum Database {
 }
 
 /// Макрос для генерации методов получения сервисов из базы данных  
-macro_rules! impl_get_service {
+macro_rules! impl_get_repo {
     ($name:ident, $repo_trait:ident, $repo_postgres:ident, $repo_memory:ident) => {
-        pub async fn $name(self: Arc<Self>) -> Box<dyn $repo_trait> {
-            match self.as_ref() {
+        pub async fn $name(self: &Arc<Self>) -> Box<dyn $repo_trait> {
+            match self.clone().as_ref() {
                 Database::Postgres(connection) => {
                     Box::new($repo_postgres(connection.clone())) as Box<dyn $repo_trait>
                 }
@@ -32,16 +33,22 @@ macro_rules! impl_get_service {
 }
 
 impl Database {
-    impl_get_service!(
-        get_user_service,
+    impl_get_repo!(
+        get_user_repo,
         UserRepository,
         UserPostgresRepo,
         UserStateRepo
     );
-    impl_get_service!(
-        get_post_service,
+    impl_get_repo!(
+        get_post_repo,
         PostRepository,
         PostPostgresRepo,
         PostStateRepo
+    );
+    impl_get_repo!(
+        get_auth_repo,
+        AuthRepository,
+        AuthPostgresRepo,
+        AuthStateRepo
     );
 }

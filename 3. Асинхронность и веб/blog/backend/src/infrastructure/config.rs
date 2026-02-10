@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use tracing::info;
 
 /// Конфигурация приложения
@@ -15,6 +17,12 @@ impl Config {
     pub fn from_env() -> anyhow::Result<Self> {
         let database_url = std::env::var("DATABASE_URL")?;
         let media_path = std::env::var("MEDIA_PATH").unwrap_or_else(|_| "./media".into());
+        Path::new(&media_path).exists().then(|| ()).ok_or_else(|| {
+            anyhow::anyhow!(
+                "Media path '{}' does not exist. Please create it or set MEDIA_PATH env variable to an existing directory.",
+                media_path
+            )
+        })?;
         let jwt_secret = std::env::var("JWT_SECRET")?;
         let port_api = std::env::var("PORT_API")?.parse::<u16>()?;
         let port_grps = std::env::var("PORT_GRPS")?.parse::<u16>()?;

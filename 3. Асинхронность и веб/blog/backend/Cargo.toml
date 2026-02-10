@@ -2,7 +2,7 @@
 name = "backend"
 version = "0.1.5"
 edition = "2024"
-build = "build.rs"
+# build = "build.rs"
 
 [dependencies]
 sea-orm = { version = "2.0.0-rc.30", features = [
@@ -36,6 +36,7 @@ prost = "0.14"
 prost-types = "0.14"
 tower-http = { version = "0.6", features = ["cors"] }
 tonic-prost = "0.14"
+base64 = "0.22"
 
 [build-dependencies]
 tonic-prost-build = "0.14"

@@ -14,8 +14,8 @@ pub enum ErrorBlog {
     NotFound(String),
     #[error("Validation error: {0}")]
     Validation(String),
-    #[error("Authentication error: {0}")]
-    Authentication(String),
+    #[error("Unauthorized error: {0}")]
+    Unauthorized(String),
     #[error("Argument error: {0}")]
     Argument(String),
     #[error("Internal error: {0}")]
@@ -52,7 +52,7 @@ impl IntoResponse for ErrorBlog {
             ErrorBlog::Database(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg),
             ErrorBlog::NotFound(msg) => (StatusCode::NOT_FOUND, msg),
             ErrorBlog::Validation(msg) => (StatusCode::BAD_REQUEST, msg),
-            ErrorBlog::Authentication(msg) => (StatusCode::UNAUTHORIZED, msg),
+            ErrorBlog::Unauthorized(msg) => (StatusCode::UNAUTHORIZED, msg),
             ErrorBlog::Argument(msg) => (StatusCode::BAD_REQUEST, msg),
             ErrorBlog::Internal(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg),
         };
@@ -70,7 +70,7 @@ impl Into<tonic::Status> for ErrorBlog {
             ErrorBlog::Database(msg) => (tonic::Code::Internal, msg),
             ErrorBlog::NotFound(msg) => (tonic::Code::NotFound, msg),
             ErrorBlog::Validation(msg) => (tonic::Code::InvalidArgument, msg),
-            ErrorBlog::Authentication(msg) => (tonic::Code::Unauthenticated, msg),
+            ErrorBlog::Unauthorized(msg) => (tonic::Code::Unauthenticated, msg),
             ErrorBlog::Argument(msg) => (tonic::Code::InvalidArgument, msg),
             ErrorBlog::Internal(msg) => (tonic::Code::Internal, msg),
         };

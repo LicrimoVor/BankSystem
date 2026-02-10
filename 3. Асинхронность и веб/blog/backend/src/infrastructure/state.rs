@@ -1,4 +1,4 @@
-use crate::domain::{post::Post, user::User};
+use crate::domain::{auth::RefreshToken, post::Post, user::User};
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::RwLock;
 use uuid::Uuid;
@@ -13,6 +13,9 @@ pub struct State {
     /// Хранилище постов
     /// {user_id: {post_id: post}}
     posts: Arc<RwLock<HashMap<Uuid, HashMap<Uuid, Post>>>>,
+    /// Хранилище refresh токенов
+    /// {refresh_token: user_id}
+    refresh_tokens: Arc<RwLock<HashMap<RefreshToken, Uuid>>>,
 }
 
 impl State {
@@ -20,11 +23,18 @@ impl State {
         Self {
             users: Arc::new(RwLock::new(HashMap::new())),
             posts: Arc::new(RwLock::new(HashMap::new())),
+            refresh_tokens: Arc::new(RwLock::new(HashMap::new())),
         }
     }
 
     pub async fn get_users(&self) -> tokio::sync::RwLockReadGuard<'_, HashMap<Uuid, User>> {
         self.users.read().await
+    }
+
+    pub async fn get_refresh_tokens(
+        &self,
+    ) -> tokio::sync::RwLockReadGuard<'_, HashMap<RefreshToken, Uuid>> {
+        self.refresh_tokens.read().await
     }
 
     pub async fn get_posts(
@@ -41,5 +51,11 @@ impl State {
         &self,
     ) -> tokio::sync::RwLockWriteGuard<'_, HashMap<Uuid, HashMap<Uuid, Post>>> {
         self.posts.write().await
+    }
+
+    pub async fn get_mut_refresh_tokens(
+        &self,
+    ) -> tokio::sync::RwLockWriteGuard<'_, HashMap<RefreshToken, Uuid>> {
+        self.refresh_tokens.write().await
     }
 }

@@ -11,7 +11,7 @@ pub struct Post {
     title: String,
     #[getset(get = "pub", set = "pub")]
     content: String,
-    #[getset(get = "pub")]
+    #[getset(get = "pub", set = "pub")]
     img_path: Option<String>,
     #[getset(get = "pub")]
     author_id: Uuid,
@@ -22,7 +22,7 @@ pub struct Post {
 }
 
 #[async_trait::async_trait]
-pub trait PostRepository {
+pub trait PostRepository: Send + Sync {
     async fn create(
         &self,
         title: String,

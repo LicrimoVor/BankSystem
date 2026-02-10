@@ -13,7 +13,7 @@ pub struct User {
     id: Uuid,
     #[getset(get = "pub", set = "pub")]
     username: String,
-    #[getset(get = "pub", set = "pub")]
+    #[getset(get = "pub")]
     email: String,
     #[getset(get = "pub")]
     password_hash: String,
@@ -22,7 +22,7 @@ pub struct User {
 }
 
 impl User {
-    pub fn change_password(&mut self, new_password: String) -> Result<(), ErrorBlog> {
+    pub fn set_password(&mut self, new_password: String) -> Result<(), ErrorBlog> {
         if new_password.len() < MIN_PASSWORD_LENGTH {
             return Err(ErrorBlog::Validation(
                 "Password must be at least 8 characters long".to_string(),
@@ -36,6 +36,17 @@ impl User {
         self.password_hash = generate_password_hash(new_password.as_str())?;
         Ok(())
     }
+
+    pub fn set_email(&mut self, new_email: String) -> Result<(), ErrorBlog> {
+        if !regex::Regex::new(EMAIL_REGEX)
+            .unwrap()
+            .is_match(new_email.as_str())
+        {
+            return Err(ErrorBlog::Validation("Invalid email format".to_string()));
+        }
+        self.email = new_email;
+        Ok(())
+    }
 }
 
 #[async_trait::async_trait]
@@ -44,7 +55,7 @@ pub trait UserRepository: Send + Sync {
         &self,
         username: String,
         email: String,
-        password_hash: String,
+        password: String,
     ) -> Result<User, ErrorBlog>;
     async fn update(&self, user_id: Uuid, user: User) -> Result<User, ErrorBlog>;
     async fn delete(&self, user_id: Uuid) -> Result<User, ErrorBlog>;

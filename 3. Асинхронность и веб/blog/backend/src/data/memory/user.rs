@@ -13,9 +13,9 @@ impl UserRepository for UserStateRepo {
         &self,
         username: String,
         email: String,
-        password_hash: String,
+        password: String,
     ) -> Result<User, ErrorBlog> {
-        let user = factory::create(username, email, password_hash)?;
+        let user = factory::create(username, email, password)?;
         let mut user_state = self.0.get_mut_users().await;
         user_state.insert(user.id().clone(), user.clone());
         Ok(user)

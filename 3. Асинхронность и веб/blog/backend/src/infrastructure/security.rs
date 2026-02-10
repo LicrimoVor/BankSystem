@@ -38,10 +38,10 @@ pub fn generate_hash(plain: &str) -> Result<String, ErrorBlog> {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct Claims {
-    sub: String,
-    iat: i64,
-    exp: i64,
+pub struct Claims {
+    pub sub: String,
+    pub iat: i64,
+    pub exp: i64,
 }
 
 pub fn generate_jwt_token(sercret: &str, user_id: &str) -> Result<String, ErrorBlog> {

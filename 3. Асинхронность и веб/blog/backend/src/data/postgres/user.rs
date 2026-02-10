@@ -32,7 +32,7 @@ impl UserRepository for UserPostgresRepo {
         &self,
         username: String,
         email: String,
-        password_hash: String,
+        password: String,
     ) -> Result<User, ErrorBlog> {
         // Реализовать создание пользователя в базе данных PostgreSQL
         unimplemented!()

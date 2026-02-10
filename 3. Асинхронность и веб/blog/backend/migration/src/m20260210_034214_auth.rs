@@ -9,19 +9,14 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table("posts")
+                    .table("auth")
                     .if_not_exists()
-                    .col(uuid("id").unique_key().primary_key())
-                    .col(string("title"))
-                    .col(text("content"))
-                    .col(uuid("author_id"))
-                    .col(string("img_path").null())
-                    .col(timestamp_with_time_zone("created_at").default(Expr::current_timestamp()))
-                    .col(timestamp_with_time_zone("updated_at").default(Expr::current_timestamp()))
+                    .col(string("refresh_token").primary_key().unique_key())
+                    .col(uuid("user_id"))
                     .foreign_key(
                         ForeignKey::create()
-                            .name("fk-posts-users")
-                            .from("posts", "author_id")
+                            .name("fk-auth-users")
+                            .from("auth", "user_id")
                             .to("users", "id")
                             .on_delete(ForeignKeyAction::Cascade),
                     )
@@ -32,7 +27,7 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_table(Table::drop().table("posts").to_owned())
+            .drop_table(Table::drop().table("auth").to_owned())
             .await
     }
 }
