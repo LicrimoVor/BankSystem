@@ -1,0 +1,21 @@
+syntax = "proto3";
+package general;
+import "dto.proto";
+
+// Сервис общих функций
+service GeneralService {
+    // Проверка работоспособности
+  rpc Health(dto.Empty) returns (HealthResponse);
+    // Пинг
+  rpc Ping(PingRequest) returns (PingResponse);
+}
+
+message HealthResponse {
+  string status = 1;
+}
+message PingResponse {
+  string pong = 1;
+}
+message PingRequest {
+  string ping = 1;
+}

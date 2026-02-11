@@ -1,0 +1,29 @@
+syntax = "proto3";
+package user;
+import "dto.proto";
+
+// Сервис пользователей
+service UserService {
+  // Получение информации о себе (unary)
+  rpc GetMe(dto.Empty) returns (dto.User);
+
+  // Обновление данных о пользователе (unary)
+  rpc UpdateMe(UpdateMeRequest) returns (dto.User);
+
+  // Удаление аккаунта (unary)
+  rpc DeleteMe(dto.Empty) returns (dto.Empty);
+
+  // Поиск пользователя по email
+  rpc FindByEmail(FindByEmailRequest) returns (dto.User);
+}
+
+
+message FindByEmailRequest {
+  string email = 1;
+}
+
+message UpdateMeRequest {
+  optional string username = 1;
+  optional string email    = 2;
+  optional string password = 3;
+}

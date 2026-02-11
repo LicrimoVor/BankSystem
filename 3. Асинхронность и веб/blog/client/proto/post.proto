@@ -1,0 +1,54 @@
+syntax = "proto3";
+package post;
+import "dto.proto";
+
+// Сервис постов
+service PostService {
+    // Созд ание поста
+    rpc CreatePost(PostCreateRequest) returns (dto.Post);
+
+    // Получение постов автора
+    rpc GetsByAuthor(GetByAuthorPostRequest) returns (PostsResponse);
+
+    // Получение моих постов
+    rpc GetsMe(dto.Empty) returns (PostsResponse);
+
+    // Обнолвение поста
+    rpc UpdatePost(PostUpdateRequest) returns (dto.Post);
+
+    // Удаление поста
+    rpc DeletePost(PostDeleteRequest) returns (dto.Empty);
+
+    // Получение поста по id
+    rpc GetById(GetPostRequest) returns (dto.Post);
+}
+
+message GetByAuthorPostRequest {
+    string email = 1;
+}
+
+message GetPostRequest {
+    string id = 1;
+}
+
+message PostDeleteRequest {
+    string id = 1;
+}
+
+message PostUpdateRequest {
+    string id = 1;
+    optional string title = 2;
+    optional string content = 3;
+    optional string img_base64 = 5;
+}
+
+message PostCreateRequest {
+    string title = 2;
+    string content = 3;
+    optional string img_base64 = 5;
+}
+
+
+message PostsResponse {
+    repeated dto.Post posts = 1;
+}

@@ -24,5 +24,8 @@ pub fn grpc_init(config: Arc<Config>, database: Arc<Database>) -> Result<RouterT
 
     Ok(Server::builder()
         .layer(layer)
-        .add_service(services::general::init(database.clone(), config.clone())))
+        .add_service(services::general::init(database.clone(), config.clone()))
+        .add_service(services::auth::init(database.clone(), config.clone()))
+        .add_service(services::user::init(database.clone(), config.clone()))
+        .add_service(services::post::init(database.clone(), config.clone())))
 }

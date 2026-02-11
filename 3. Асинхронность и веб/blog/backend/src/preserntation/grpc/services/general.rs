@@ -20,6 +20,8 @@ impl general_service_server::GeneralService for GeneralGRPCService {
             pong: "pong".to_string(),
         }))
     }
+
+    // TODO сделать когда нибудь media (но я и так не успею)
 }
 
 pub fn init(

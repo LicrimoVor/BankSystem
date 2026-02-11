@@ -1,0 +1,58 @@
+syntax = "proto3";
+package auth;
+import "dto.proto";
+
+// Сервис аунтентификации пользователей
+service AuthService {
+    // Регистрация нового пользователя (unary)
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+
+    // Аутентификация пользователя (unary)
+  rpc Login(LoginRequest) returns (LoginResponse);
+
+    // Выход пользователя (unary)
+  rpc Logout(LogoutRequest) returns (dto.Empty);
+
+    // Обновление jwt token пользователя (unary)
+  rpc Refresh(RefreshRequest) returns (RefreshResponse);}
+
+// Запрос на регистрацию
+message RegisterRequest {
+  string username = 1;
+  string email    = 2;
+  string password = 3;
+}
+
+// Ответ на регистрацию
+message RegisterResponse {
+  dto.User user         = 1;
+  string access_token  = 4;
+  string refresh_token = 5;
+}
+
+// Запрос на аутентификацию
+message LoginRequest {
+  string email    = 1;
+  string password = 2;
+}
+
+// Ответ на аутентификацию
+message LoginResponse {
+  dto.User user         = 1;
+  string access_token  = 2;
+  string refresh_token = 3;
+}
+
+message RefreshRequest {
+    string refresh_token  = 1;
+}
+
+message RefreshResponse {
+    string access_token  = 1;
+}
+
+message LogoutRequest {
+    string refresh_token  = 1;
+}
+
+
