@@ -49,9 +49,6 @@ async fn update_user(
         email,
         password,
     } = user;
-    if let (true, true, true) = (username.is_none(), email.is_none(), password.is_none()) {
-        return Ok((StatusCode::BAD_REQUEST, ()).into_response());
-    }
     let service = UserService(database);
     let user = service.update(user_id, username, email, password).await?;
     Ok((StatusCode::OK, Json(json!(UserResponse::new(user)))).into_response())

@@ -5,7 +5,6 @@ use axum::{extract::Request, http::HeaderValue, response::Response};
 use futures_util::future::BoxFuture;
 use std::task::{Context, Poll};
 use tower::{Layer, Service};
-use tracing::info;
 use uuid::Uuid;
 
 #[derive(Clone)]

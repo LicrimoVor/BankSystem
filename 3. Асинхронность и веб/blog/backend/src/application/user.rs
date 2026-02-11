@@ -27,6 +27,10 @@ impl UserService {
         email: Option<String>,
         password: Option<String>,
     ) -> Result<User, ErrorBlog> {
+        if let (true, true, true) = (username.is_none(), email.is_none(), password.is_none()) {
+            return Err(ErrorBlog::Validation("All field is none".to_string()));
+        };
+
         let user_repo = self.0.get_user_repo().await;
         let mut user = user_repo
             .get_by_id(user_id)

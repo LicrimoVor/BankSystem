@@ -1,40 +1,29 @@
 syntax = "proto3";
 package user;
+import "dto.proto";
 
 // Сервис пользователей
 service UserService {
-    // Регистрация нового пользователя (unary)
-  rpc Register(RegisterRequest) returns (RegisterResponse);
+  // Получение информации о себе (unary)
+  rpc GetMe(dto.Empty) returns (dto.User);
 
-    // Аутентификация пользователя (unary)
-  rpc Login(LoginRequest) returns (LoginResponse);
+  // Обновление данных о пользователе (unary)
+  rpc UpdateMe(UpdateMeRequest) returns (dto.User);
+
+  // Удаление аккаунта (unary)
+  rpc DeleteMe(dto.Empty) returns (dto.Empty);
+
+  // Поиск пользователя по email
+  rpc FindByEmail(FindByEmailRequest) returns (dto.User);
 }
 
-// Запрос на регистрацию
-message RegisterRequest {
-  string username = 1;
-  string email    = 2;
-  string password = 3;
+
+message FindByEmailRequest {
+  string email = 1;
 }
 
-// Ответ на регистрацию
-message RegisterResponse {
-  string email         = 2;
-  string username      = 3;
-  string access_token  = 4;
-  string refresh_token = 5;
-}
-
-// Запрос на аутентификацию
-message LoginRequest {
-  string email    = 1;
-  string password = 2;
-}
-
-// Ответ на аутентификацию
-message LoginResponse {
-  string email         = 2;
-  string username      = 3;
-  string access_token  = 4;
-  string refresh_token = 5;
+message UpdateMeRequest {
+  optional string username = 1;
+  optional string email    = 2;
+  optional string password = 3;
 }

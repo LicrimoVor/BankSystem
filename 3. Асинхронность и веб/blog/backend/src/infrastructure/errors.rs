@@ -36,6 +36,12 @@ impl From<sqlx::Error> for ErrorBlog {
     }
 }
 
+impl From<sea_orm::DbErr> for ErrorBlog {
+    fn from(err: sea_orm::DbErr) -> Self {
+        ErrorBlog::Database(err.to_string())
+    }
+}
+
 impl From<uuid::Error> for ErrorBlog {
     fn from(err: uuid::Error) -> Self {
         ErrorBlog::Validation(format!("UUID error: {}", err.to_string()))
@@ -73,9 +79,9 @@ impl IntoResponse for ErrorBlog {
     }
 }
 
-impl Into<tonic::Status> for ErrorBlog {
-    fn into(self) -> tonic::Status {
-        let (code, message) = match self {
+impl From<ErrorBlog> for tonic::Status {
+    fn from(err: ErrorBlog) -> Self {
+        let (code, message) = match err {
             ErrorBlog::Database(msg) => (tonic::Code::Internal, msg),
             ErrorBlog::NotFound(msg) => (tonic::Code::NotFound, msg),
             ErrorBlog::Validation(msg) => (tonic::Code::InvalidArgument, msg),

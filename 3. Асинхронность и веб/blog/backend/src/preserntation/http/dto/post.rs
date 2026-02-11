@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize)]
 pub struct PostResponse {
+    pub id: String,
     pub title: String,
     pub content: String,
     pub updated_at: String,
@@ -14,6 +15,7 @@ pub struct PostResponse {
 impl PostResponse {
     pub fn new(user: User, post: Post) -> PostResponse {
         Self {
+            id: post.id().to_string(),
             title: post.title().clone(),
             content: post.content().clone(),
             img_path: post.img_path().clone(),

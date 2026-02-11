@@ -5,7 +5,7 @@ use crate::{
     utils::cookie::{extract_cookie, set_cookie},
 };
 use axum::{extract::Request, response::Response};
-use cookie::{Cookie, SameSite, time::Duration};
+use cookie::{Cookie, SameSite};
 use futures_util::future::BoxFuture;
 use std::task::{Context, Poll};
 use tower::{Layer, Service};

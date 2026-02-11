@@ -9,7 +9,7 @@ pub struct Config {
     pub media_path: String,
     pub jwt_secret: String,
     pub port_api: u16,
-    pub port_grps: u16,
+    pub port_grpc: u16,
     pub host: String,
     pub cors_origin: String,
 }
@@ -26,7 +26,7 @@ impl Config {
         })?;
         let jwt_secret = std::env::var("JWT_SECRET")?;
         let port_api = std::env::var("PORT_API")?.parse::<u16>()?;
-        let port_grps = std::env::var("PORT_GRPC")?.parse::<u16>()?;
+        let port_grpc = std::env::var("PORT_GRPC")?.parse::<u16>()?;
         let host = std::env::var("HOST")?;
         let cors_origin =
             std::env::var("CORS_ORIGIN").unwrap_or_else(|_| format!("http://{}", host));
@@ -37,7 +37,7 @@ impl Config {
             media_path,
             jwt_secret,
             port_api,
-            port_grps,
+            port_grpc,
             host,
             cors_origin,
         })

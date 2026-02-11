@@ -70,8 +70,8 @@ async fn delete_post(
     Path(post_id): Path<Uuid>,
 ) -> Result<impl IntoResponse, ErrorBlog> {
     let AppState { database, .. } = state;
-    let service = PostService(database);
-    service.delete(user_id, post_id).await?;
+    let post_service = PostService(database);
+    post_service.delete(user_id, post_id).await?;
     Ok((StatusCode::NO_CONTENT, ()).into_response())
 }
 
@@ -89,15 +89,15 @@ async fn get_by_id(
 }
 
 /// В идеале конечно сделать пагинацию...
-async fn gets_by_user_id(
+async fn gets_by_author(
     State(state): State<AppState>,
-    Path(user_id): Path<Uuid>,
+    Path(email): Path<String>,
 ) -> Result<impl IntoResponse, ErrorBlog> {
     let AppState { database, .. } = state;
     let post_service = PostService(database.clone());
     let user_service = UserService(database);
-    let user = user_service.get_by_id(user_id).await?;
-    let posts = post_service.gets_by_author(user_id).await?;
+    let user = user_service.get_by_email(email).await?;
+    let posts = post_service.gets_by_author(*user.id()).await?;
     let data: Vec<PostResponse> = posts
         .into_iter()
         .map(|post| PostResponse::new(user.clone(), post))
@@ -127,7 +127,7 @@ async fn gets_me(
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/", post(create_post))
-        .route("/author/{user_id}", get(gets_by_user_id))
+        .route("/author/{email}", get(gets_by_author))
         .route("/me", get(gets_me))
         .route("/{post_id}", patch(update_post))
         .route("/{post_id}", delete(delete_post))
