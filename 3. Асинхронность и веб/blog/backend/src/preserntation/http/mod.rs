@@ -14,7 +14,7 @@ use std::sync::Arc;
 use tower_http::cors::CorsLayer;
 
 #[derive(Clone)]
-pub struct AppState {
+pub(self) struct AppState {
     pub database: Arc<Database>,
     pub config: Arc<Config>,
 }
@@ -23,7 +23,7 @@ pub fn http_init(config: Arc<Config>, database: Arc<Database>) -> Result<axum::R
     let origin = config.cors_origin.parse::<HeaderValue>()?;
     let cors_layer = CorsLayer::new()
         .allow_credentials(true)
-        .allow_methods([Method::DELETE, Method::POST, Method::GET, Method::PUT])
+        .allow_methods([Method::DELETE, Method::POST, Method::GET, Method::PATCH])
         .allow_origin(origin)
         .allow_headers([
             header::AUTHORIZATION,
@@ -33,14 +33,19 @@ pub fn http_init(config: Arc<Config>, database: Arc<Database>) -> Result<axum::R
         ])
         .max_age(MAX_AGE_CORS);
     let app_state = AppState { database, config };
+    let api_router = axum::Router::new()
+        .merge(api::general::router())
+        .nest("/auth", api::auth::router())
+        .nest("/user", api::user::router())
+        .nest("/post", api::post::router());
 
     Ok(axum::Router::new()
-        .nest("/auth", api::auth::router())
-        .layer(TimeLayer)
-        .layer(RequestIdLayer)
-        .layer(cors_layer)
-        .layer(CsrfLayer)
+        .nest("/api", api_router)
         // Уместен ли он тут? Или все в UserIdExtracor делать
         .layer(JwtLayer)
+        .layer(CsrfLayer)
+        .layer(cors_layer)
+        .layer(TimeLayer)
+        .layer(RequestIdLayer)
         .with_state(app_state))
 }

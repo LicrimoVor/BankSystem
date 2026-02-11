@@ -1,8 +1,9 @@
-use crate::{ domain::auth::JwtToken};
+use crate::domain::auth::JwtToken;
 use axum::{extract::Request, http::header, response::Response};
 use futures_util::future::BoxFuture;
 use std::task::{Context, Poll};
 use tower::{Layer, Service};
+use tracing::{debug, info};
 
 #[derive(Clone)]
 pub struct JwtLayer;
@@ -36,7 +37,9 @@ where
     fn call(&mut self, mut request: Request) -> Self::Future {
         if let Some(jwt_header) = request.headers().get(header::AUTHORIZATION).cloned() {
             let jwt_header = jwt_header.to_str().unwrap();
+            debug!("jwt_header: {}", jwt_header);
             if let Some(jwt_token) = jwt_header.split(" ").last() {
+                debug!("jwt_header: {}", jwt_token);
                 request
                     .extensions_mut()
                     .insert(JwtToken::from(jwt_token.to_string()));

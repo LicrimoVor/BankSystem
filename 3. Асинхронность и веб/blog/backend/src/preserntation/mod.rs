@@ -1,2 +1,2 @@
-pub mod grps;
+pub mod grpc;
 pub mod http;

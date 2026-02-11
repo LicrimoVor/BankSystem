@@ -44,8 +44,9 @@ impl PostService {
 
     pub async fn update(
         &self,
-        post_id: Uuid,
         config: Arc<Config>,
+        post_id: Uuid,
+        user_id: Uuid,
         title: Option<String>,
         content: Option<String>,
         image: Option<String>,
@@ -61,6 +62,13 @@ impl PostService {
             .get_by_id(post_id)
             .await?
             .ok_or_else(|| ErrorBlog::NotFound(format!("Post with id {} not found", post_id)))?;
+
+        if *post.author_id() != user_id {
+            return Err(ErrorBlog::Forbidden(
+                "You are not allowed to update this post".to_string(),
+            ));
+        }
+
         if let Some(title) = title {
             post.set_title(title);
         }
@@ -74,8 +82,19 @@ impl PostService {
         post_repo.update(post_id, post.clone()).await
     }
 
-    pub async fn delete(&self, post_id: Uuid) -> Result<Post, ErrorBlog> {
+    pub async fn delete(&self, user_id: Uuid, post_id: Uuid) -> Result<Post, ErrorBlog> {
         let post_repo = self.0.get_post_repo().await;
+        let post = post_repo
+            .get_by_id(post_id)
+            .await?
+            .ok_or_else(|| ErrorBlog::NotFound(format!("Post with id {} not found", post_id)))?;
+
+        if *post.author_id() != user_id {
+            return Err(ErrorBlog::Forbidden(
+                "You are not allowed to delete this post".to_string(),
+            ));
+        }
+
         post_repo.delete(post_id).await
     }
 }

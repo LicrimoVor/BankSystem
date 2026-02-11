@@ -18,6 +18,8 @@ pub enum ErrorBlog {
     Unauthorized(String),
     #[error("Argument error: {0}")]
     Argument(String),
+    #[error("Forbidden error: {0}")]
+    Forbidden(String),
     #[error("Internal error: {0}")]
     Internal(String),
 }
@@ -61,6 +63,7 @@ impl IntoResponse for ErrorBlog {
             ErrorBlog::Unauthorized(msg) => (StatusCode::UNAUTHORIZED, msg),
             ErrorBlog::Argument(msg) => (StatusCode::BAD_REQUEST, msg),
             ErrorBlog::Internal(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg),
+            ErrorBlog::Forbidden(msg) => (StatusCode::FORBIDDEN, msg),
         };
         let body = Json(json!({
             "status": status.as_str(),
@@ -79,6 +82,7 @@ impl Into<tonic::Status> for ErrorBlog {
             ErrorBlog::Unauthorized(msg) => (tonic::Code::Unauthenticated, msg),
             ErrorBlog::Argument(msg) => (tonic::Code::InvalidArgument, msg),
             ErrorBlog::Internal(msg) => (tonic::Code::Internal, msg),
+            ErrorBlog::Forbidden(msg) => (tonic::Code::PermissionDenied, msg),
         };
         tonic::Status::new(code, message)
     }

@@ -1,8 +1,11 @@
+use crate::preserntation::http::consts::HEADER_X_ID_REQUEST;
+
 use super::super::consts::RequestId;
-use axum::{extract::Request, response::Response};
+use axum::{extract::Request, http::HeaderValue, response::Response};
 use futures_util::future::BoxFuture;
 use std::task::{Context, Poll};
 use tower::{Layer, Service};
+use tracing::info;
 use uuid::Uuid;
 
 #[derive(Clone)]
@@ -36,10 +39,13 @@ where
 
     fn call(&mut self, mut request: Request) -> Self::Future {
         let id = RequestId(Uuid::new_v4());
+        let header = HeaderValue::from_str(&id.0.to_string()).unwrap();
+
         request.extensions_mut().insert(id.clone());
         let future = self.inner.call(request);
         Box::pin(async move {
-            let response: Response = future.await?;
+            let mut response: Response = future.await?;
+            response.headers_mut().insert(HEADER_X_ID_REQUEST, header);
             Ok(response)
         })
     }

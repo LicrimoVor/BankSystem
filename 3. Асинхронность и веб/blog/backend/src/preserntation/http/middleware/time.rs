@@ -1,5 +1,8 @@
 use crate::preserntation::http::consts::RequestId;
-use axum::{extract::Request, response::Response};
+use axum::{
+    extract::{MatchedPath, Request},
+    response::Response,
+};
 use futures_util::future::BoxFuture;
 use std::{
     task::{Context, Poll},
@@ -38,14 +41,32 @@ where
     }
 
     fn call(&mut self, request: Request) -> Self::Future {
+        let matched_path = request
+            .extensions()
+            .get::<MatchedPath>()
+            .map(MatchedPath::as_str)
+            .unwrap_or("unknow");
+        let Some(id) = request.extensions().get::<RequestId>().cloned() else {
+            panic!("request id not found");
+        };
+
+        info!(
+            "http_request: {} - {} - {}",
+            request.method(),
+            id.0.to_string(),
+            matched_path,
+        );
         let future = self.inner.call(request);
         let t = Instant::now();
         Box::pin(async move {
             let response: Response = future.await?;
             let elapsed = t.elapsed();
-            if let Some(id) = response.extensions().get::<RequestId>() {
-                info!("{} - {} ms", id.0, elapsed.as_millis());
-            };
+            info!(
+                "http_response: {} - {} - {} ms",
+                response.status(),
+                id.0.to_string(),
+                elapsed.as_micros() / 1000,
+            );
             Ok(response)
         })
     }

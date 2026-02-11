@@ -3,6 +3,7 @@ use std::path::Path;
 use tracing::info;
 
 /// Конфигурация приложения
+#[derive(Debug)]
 pub struct Config {
     pub database_url: String,
     pub media_path: String,
@@ -25,7 +26,7 @@ impl Config {
         })?;
         let jwt_secret = std::env::var("JWT_SECRET")?;
         let port_api = std::env::var("PORT_API")?.parse::<u16>()?;
-        let port_grps = std::env::var("PORT_GRPS")?.parse::<u16>()?;
+        let port_grps = std::env::var("PORT_GRPC")?.parse::<u16>()?;
         let host = std::env::var("HOST")?;
         let cors_origin =
             std::env::var("CORS_ORIGIN").unwrap_or_else(|_| format!("http://{}", host));

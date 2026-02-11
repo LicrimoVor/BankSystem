@@ -61,10 +61,10 @@ pub fn generate_jwt_token(sercret: &str, user_id: Uuid) -> Result<String, ErrorB
     token.map_err(|e| ErrorBlog::Internal(e.to_string()))
 }
 
-pub fn verify_jwt_token(token: &str) -> Result<Claims, ErrorBlog> {
+pub fn verify_jwt_token(sercret: &str, token: &str) -> Result<Claims, ErrorBlog> {
     let data = jsonwebtoken::decode::<Claims>(
         token,
-        &jsonwebtoken::DecodingKey::from_secret(HASH_SALT.as_bytes()),
+        &jsonwebtoken::DecodingKey::from_secret(sercret.as_bytes()),
         &jsonwebtoken::Validation::default(),
     )
     .map_err(|e| ErrorBlog::Internal(e.to_string()))?;

@@ -58,7 +58,7 @@ async fn login(
         .into_response();
 
     let cookie = Cookie::build((COOKIE_REFRESH, refresh.0))
-        .path("/api/auth/refresh")
+        .path("/api/auth/")
         .http_only(true)
         .secure(true)
         .same_site(SameSite::Lax)

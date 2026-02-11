@@ -14,8 +14,8 @@ impl JwtToken {
         generate_jwt_token(secret, user_id.clone()).map(Self)
     }
 
-    pub fn verify(&self) -> Result<Claims, ErrorBlog> {
-        verify_jwt_token(&self.0)
+    pub fn verify(&self, secret: &str) -> Result<Claims, ErrorBlog> {
+        verify_jwt_token(secret, &self.0)
     }
 }
 

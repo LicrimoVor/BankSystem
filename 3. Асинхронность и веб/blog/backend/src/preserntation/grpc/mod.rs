@@ -6,7 +6,7 @@ mod general;
 mod post;
 mod user;
 
-pub fn grps_init(config: Arc<Config>, database: Arc<Database>) -> Result<Router> {
+pub fn grpc_init(config: Arc<Config>, database: Arc<Database>) -> Result<Router> {
     // Ok(Server::builder().add_service(todo!()))
     todo!()
 }

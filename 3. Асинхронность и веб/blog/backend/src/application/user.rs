@@ -1,6 +1,4 @@
-use crate::{
-    application::user, data::Database, domain::user::User, infrastructure::errors::ErrorBlog,
-};
+use crate::{data::Database, domain::user::User, infrastructure::errors::ErrorBlog};
 use std::sync::Arc;
 
 pub struct UserService(pub Arc<Database>);
