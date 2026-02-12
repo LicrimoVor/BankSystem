@@ -1,7 +1,11 @@
 use super::proto::general::*;
-use crate::{dto, grpc::GrpcState};
+use crate::{
+    dto,
+    grpc::GrpcState,
+    types::{Error, general::GeneralClientTrait},
+};
 use std::sync::{Arc, Mutex};
-use tonic::{Request, Status};
+use tonic::Request;
 
 pub struct GeneralClient {
     inner: general_service_client::GeneralServiceClient<tonic::transport::Channel>,
@@ -15,8 +19,11 @@ impl GeneralClient {
             state,
         }
     }
+}
 
-    pub async fn health(&mut self) -> Result<String, Status> {
+#[async_trait::async_trait]
+impl GeneralClientTrait for GeneralClient {
+    async fn health(&mut self) -> Result<String, Error> {
         let HealthResponse { status } = self
             .inner
             .health(Request::new(dto::Empty {}))
@@ -25,10 +32,12 @@ impl GeneralClient {
         Ok(status)
     }
 
-    pub async fn ping(&mut self, ping: String) -> Result<String, Status> {
+    async fn ping(&mut self) -> Result<String, Error> {
         let PingResponse { pong } = self
             .inner
-            .ping(Request::new(PingRequest { ping }))
+            .ping(Request::new(PingRequest {
+                ping: "ping".to_string(),
+            }))
             .await?
             .into_inner();
         Ok(pong)

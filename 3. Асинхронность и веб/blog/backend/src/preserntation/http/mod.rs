@@ -5,6 +5,7 @@ pub(self) mod extractor;
 pub(self) mod middleware;
 use self::consts::{HEADER_CSRF_TOKEN, HEADER_X_ID_REQUEST, MAX_AGE_CORS};
 use self::middleware::{csrf::CsrfLayer, req_id::RequestIdLayer, time::TimeLayer};
+use crate::preserntation::http::api::auth;
 use crate::{
     data::Database, infrastructure::config::Config, preserntation::http::middleware::jwt::JwtLayer,
 };
@@ -12,11 +13,35 @@ use anyhow::Result;
 use axum::http::{HeaderValue, Method, header};
 use std::sync::Arc;
 use tower_http::cors::CorsLayer;
+use utoipa::{OpenApi, openapi};
+use utoipa_redoc::{Redoc, Servable};
 
 #[derive(Clone)]
 pub(self) struct AppState {
     pub database: Arc<Database>,
     pub config: Arc<Config>,
+}
+
+/// Еще я без понятия как сделать security_schema (она просто не работает)
+/// Поэтому буду очень любезен если
+#[derive(utoipa::OpenApi)]
+#[openapi(
+    tags(
+        (name = "auth"),
+    ),
+)]
+pub struct ApiDoc;
+
+impl ApiDoc {
+    pub fn openapi() -> openapi::OpenApi {
+        let mut api =
+            openapi::OpenApi::new(openapi::Info::new("My API", "1.0.0"), openapi::Paths::new());
+
+        // Для PET-проекта думаю достаточно документации)
+        api.merge(auth::Doc::openapi());
+        // api.merge(UserApi::openapi());
+        api
+    }
 }
 
 pub fn http_init(config: Arc<Config>, database: Arc<Database>) -> Result<axum::Router> {
@@ -35,6 +60,7 @@ pub fn http_init(config: Arc<Config>, database: Arc<Database>) -> Result<axum::R
     let app_state = AppState { database, config };
     let api_router = axum::Router::new()
         .merge(api::general::router())
+        .merge(Redoc::with_url("/redoc", ApiDoc::openapi()))
         .nest("/auth", api::auth::router())
         .nest("/user", api::user::router())
         .nest("/post", api::post::router());

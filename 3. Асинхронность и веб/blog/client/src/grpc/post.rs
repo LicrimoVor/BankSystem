@@ -2,9 +2,10 @@ use super::proto::post::*;
 use crate::{
     dto,
     grpc::{GrpcState, utils::auth_request},
+    types::{Error, post::PostClientTrait},
 };
 use std::sync::{Arc, Mutex};
-use tonic::{Request, Status};
+use tonic::Request;
 
 pub struct PostClient {
     inner: post_service_client::PostServiceClient<tonic::transport::Channel>,
@@ -18,21 +19,24 @@ impl PostClient {
             state,
         }
     }
+}
 
-    pub async fn create(
+#[tonic::async_trait]
+impl PostClientTrait for PostClient {
+    async fn create(
         &mut self,
-        title: String,
-        content: String,
-        img_base64: Option<String>,
-    ) -> Result<dto::Post, Status> {
+        title: &str,
+        content: &str,
+        img_base64: Option<&str>,
+    ) -> Result<dto::Post, Error> {
         let Some(jwt_token) = self.state.lock().unwrap().access_token.clone() else {
-            return Err(Status::unauthenticated("unauthorized"));
+            return Err(Error::Unauthenticated);
         };
 
         let req = PostCreateRequest {
-            title,
-            content,
-            img_base64,
+            title: title.to_string(),
+            content: content.to_string(),
+            img_base64: img_base64.map(String::from),
         };
         Ok(self
             .inner
@@ -41,21 +45,21 @@ impl PostClient {
             .into_inner())
     }
 
-    pub async fn update(
+    async fn update(
         &mut self,
-        id: String,
-        title: Option<String>,
-        content: Option<String>,
-        img_base64: Option<String>,
-    ) -> Result<dto::Post, Status> {
+        id: &str,
+        title: Option<&str>,
+        content: Option<&str>,
+        img_base64: Option<&str>,
+    ) -> Result<dto::Post, Error> {
         let Some(jwt_token) = self.state.lock().unwrap().access_token.clone() else {
-            return Err(Status::unauthenticated("unauthorized"));
+            return Err(Error::Unauthenticated);
         };
         let req = PostUpdateRequest {
-            id,
-            title,
-            content,
-            img_base64,
+            id: id.to_string(),
+            title: title.map(String::from),
+            content: content.map(String::from),
+            img_base64: img_base64.map(String::from),
         };
         Ok(self
             .inner
@@ -64,20 +68,22 @@ impl PostClient {
             .into_inner())
     }
 
-    pub async fn delete(&mut self, id: String) -> Result<dto::Empty, Status> {
+    async fn delete(&mut self, id: &str) -> Result<(), Error> {
         let Some(jwt_token) = self.state.lock().unwrap().access_token.clone() else {
-            return Err(Status::unauthenticated("unauthorized"));
+            return Err(Error::Unauthenticated);
         };
-        Ok(self
-            .inner
-            .delete_post(auth_request(PostDeleteRequest { id }, jwt_token))
-            .await?
-            .into_inner())
+        self.inner
+            .delete_post(auth_request(
+                PostDeleteRequest { id: id.to_string() },
+                jwt_token,
+            ))
+            .await?;
+        Ok(())
     }
 
-    pub async fn gets_me(&mut self) -> Result<Vec<dto::Post>, Status> {
+    async fn gets_me(&mut self) -> Result<Vec<dto::Post>, Error> {
         let Some(jwt_token) = self.state.lock().unwrap().access_token.clone() else {
-            return Err(Status::unauthenticated("unauthorized"));
+            return Err(Error::Unauthenticated);
         };
         let PostsResponse { posts } = self
             .inner
@@ -87,18 +93,20 @@ impl PostClient {
         Ok(posts)
     }
 
-    pub async fn get_by_id(&mut self, id: String) -> Result<dto::Post, Status> {
+    async fn get_by_id(&mut self, id: &str) -> Result<dto::Post, Error> {
         Ok(self
             .inner
-            .get_by_id(Request::new(GetPostRequest { id }))
+            .get_by_id(Request::new(GetPostRequest { id: id.to_string() }))
             .await?
             .into_inner())
     }
 
-    pub async fn gets_by_author(&mut self, email: String) -> Result<Vec<dto::Post>, Status> {
+    async fn gets_by_author(&mut self, email: &str) -> Result<Vec<dto::Post>, Error> {
         let PostsResponse { posts } = self
             .inner
-            .gets_by_author(Request::new(GetByAuthorPostRequest { email }))
+            .gets_by_author(Request::new(GetByAuthorPostRequest {
+                email: email.to_string(),
+            }))
             .await?
             .into_inner();
         Ok(posts)

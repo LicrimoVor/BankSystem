@@ -1,18 +1,18 @@
-use serde::{Deserialize, Serialize};
-
+use super::user::UserResponse;
 use crate::domain::{auth::JwtToken, user::User};
+use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct AuthRegister {
     pub username: String,
     pub email: String,
     pub password: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct AuthLoginResponse {
-    pub username: String,
-    pub email: String,
+    pub user: UserResponse,
     pub access_token: String,
 }
 
@@ -20,13 +20,12 @@ impl AuthLoginResponse {
     pub fn new(user: User, jwt: JwtToken) -> AuthLoginResponse {
         AuthLoginResponse {
             access_token: jwt.0,
-            username: user.username().clone(),
-            email: user.email().clone(),
+            user: UserResponse::new(user),
         }
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct AuthLoginRequest {
     pub email: String,
     pub password: String,

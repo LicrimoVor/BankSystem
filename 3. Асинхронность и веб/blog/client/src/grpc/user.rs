@@ -2,9 +2,10 @@ use super::proto::user::*;
 use crate::{
     dto,
     grpc::{GrpcState, utils::auth_request},
+    types::{Error, user::UserClientTrait},
 };
 use std::sync::{Arc, Mutex};
-use tonic::{Request, Status};
+use tonic::Request;
 
 pub struct UserClient {
     inner: user_service_client::UserServiceClient<tonic::transport::Channel>,
@@ -18,10 +19,13 @@ impl UserClient {
             state,
         }
     }
+}
 
-    pub async fn me(&mut self) -> Result<dto::User, Status> {
+#[async_trait::async_trait]
+impl UserClientTrait for UserClient {
+    async fn me(&mut self) -> Result<dto::User, Error> {
         let Some(jwt_token) = self.state.lock().unwrap().access_token.clone() else {
-            return Err(Status::unauthenticated("unauthorized"));
+            return Err(Error::Unauthenticated);
         };
 
         Ok(self
@@ -31,23 +35,23 @@ impl UserClient {
             .into_inner())
     }
 
-    pub async fn update(
+    async fn update(
         &mut self,
-        username: Option<String>,
-        email: Option<String>,
-        password: Option<String>,
-    ) -> Result<dto::User, Status> {
+        username: Option<&str>,
+        email: Option<&str>,
+        password: Option<&str>,
+    ) -> Result<dto::User, Error> {
         if username.is_none() && email.is_none() && password.is_none() {
-            return Err(Status::invalid_argument("empty request"));
+            return Err(Error::Unauthenticated);
         }
         let Some(jwt_token) = self.state.lock().unwrap().access_token.clone() else {
-            return Err(Status::unauthenticated("unauthorized"));
+            return Err(Error::Unauthenticated);
         };
 
         let data = UpdateMeRequest {
-            username,
-            email,
-            password,
+            username: username.map(String::from),
+            email: email.map(String::from),
+            password: password.map(String::from),
         };
         Ok(self
             .inner
@@ -56,21 +60,22 @@ impl UserClient {
             .into_inner())
     }
 
-    pub async fn delete(&mut self) -> Result<dto::Empty, Status> {
+    async fn delete(&mut self) -> Result<(), Error> {
         let Some(jwt_token) = self.state.lock().unwrap().access_token.clone() else {
-            return Err(Status::unauthenticated("unauthorized"));
+            return Err(Error::Unauthenticated);
         };
-        Ok(self
-            .inner
+        self.inner
             .delete_me(auth_request(dto::Empty {}, jwt_token))
-            .await?
-            .into_inner())
+            .await?;
+        Ok(())
     }
 
-    pub async fn find_by_email(&mut self, email: String) -> Result<dto::User, Status> {
+    async fn get_by_email(&mut self, email: &str) -> Result<dto::User, Error> {
         Ok(self
             .inner
-            .find_by_email(Request::new(FindByEmailRequest { email }))
+            .find_by_email(Request::new(FindByEmailRequest {
+                email: email.to_string(),
+            }))
             .await?
             .into_inner())
     }

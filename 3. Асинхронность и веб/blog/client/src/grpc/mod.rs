@@ -1,5 +1,10 @@
 use std::sync::{Arc, Mutex};
 use tonic::transport::{Channel, Endpoint};
+
+use crate::types::{
+    Client, auth::AuthClientTrait, general::GeneralClientTrait, post::PostClientTrait,
+    user::UserClientTrait,
+};
 mod auth;
 mod general;
 mod post;
@@ -44,20 +49,34 @@ impl GrpcClient {
             })),
         })
     }
+}
 
-    pub fn auth(&self) -> auth::AuthClient {
-        auth::AuthClient::new(self.channel.clone(), self.state.clone())
+impl Client for GrpcClient {
+    fn auth(&self) -> Box<dyn AuthClientTrait> {
+        Box::new(auth::AuthClient::new(
+            self.channel.clone(),
+            self.state.clone(),
+        ))
     }
 
-    pub fn general(&self) -> general::GeneralClient {
-        general::GeneralClient::new(self.channel.clone(), self.state.clone())
+    fn general(&self) -> Box<dyn GeneralClientTrait> {
+        Box::new(general::GeneralClient::new(
+            self.channel.clone(),
+            self.state.clone(),
+        ))
     }
 
-    pub fn post(&self) -> post::PostClient {
-        post::PostClient::new(self.channel.clone(), self.state.clone())
+    fn post(&self) -> Box<dyn PostClientTrait> {
+        Box::new(post::PostClient::new(
+            self.channel.clone(),
+            self.state.clone(),
+        ))
     }
 
-    pub fn user(&self) -> user::UserClient {
-        user::UserClient::new(self.channel.clone(), self.state.clone())
+    fn user(&self) -> Box<dyn UserClientTrait> {
+        Box::new(user::UserClient::new(
+            self.channel.clone(),
+            self.state.clone(),
+        ))
     }
 }

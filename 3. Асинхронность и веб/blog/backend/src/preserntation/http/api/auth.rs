@@ -12,7 +12,14 @@ use crate::{
 use axum::{Json, Router, extract::State, http::StatusCode, response::IntoResponse, routing::post};
 use cookie::{Cookie, SameSite};
 use serde_json::json;
+use utoipa::OpenApi;
 
+#[utoipa::path(
+    post,
+    path = "/api/auth/register",
+    request_body = AuthRegister,
+    responses((status = 200, body = AuthLoginResponse))
+)]
 async fn register(
     State(state): State<AppState>,
     Json(data): Json<AuthRegister>,
@@ -43,6 +50,12 @@ async fn register(
     Ok(res)
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/auth/login",
+    request_body = AuthLoginRequest,
+    responses((status = 200, body = AuthLoginResponse))
+)]
 async fn login(
     State(state): State<AppState>,
     Json(data): Json<AuthLoginRequest>,
@@ -68,6 +81,13 @@ async fn login(
     Ok(res)
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/auth/logout",
+    request_body = AuthLoginRequest,
+    security(("jwt" = [])),
+    responses((status = 204))
+)]
 async fn logout(
     State(state): State<AppState>,
     RefreshExtracor(refresh): RefreshExtracor,
@@ -79,6 +99,13 @@ async fn logout(
     Ok((StatusCode::NO_CONTENT, ()).into_response())
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/auth/refresh",
+    request_body = AuthLoginRequest,
+    security(("bearerAuth" = [])),
+    responses((status = 200, body = String))
+)]
 async fn refresh(
     State(state): State<AppState>,
     RefreshExtracor(refresh): RefreshExtracor,
@@ -96,3 +123,18 @@ pub fn router() -> Router<AppState> {
         .route("/logout", post(logout))
         .route("/refresh", post(refresh))
 }
+
+#[derive(OpenApi)]
+#[openapi(
+    paths(
+        register,
+        login,
+        logout,
+        refresh,
+    ),
+    components(
+        schemas(AuthLoginResponse, AuthLoginRequest, AuthRegister),
+    ),
+    tags((name = "auth", description = "Auth API"))
+)]
+pub struct Doc;

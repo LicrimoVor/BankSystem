@@ -40,6 +40,9 @@ base64 = { workspace = true }
 tower = "0.5"
 futures-util = "0.3"
 cookie = "0.18"
+utoipa = { version = "5", features = ["axum_extras"] }
+utoipa-swagger-ui = "9"
+utoipa-redoc = { version = "6", features = ["axum"] }
 
 [build-dependencies]
 tonic-prost-build = "0.14"

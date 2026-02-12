@@ -1,8 +1,8 @@
-use serde::{Deserialize, Serialize};
-
 use crate::domain::user::User;
+use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct UserResponse {
     pub username: String,
     pub email: String,
