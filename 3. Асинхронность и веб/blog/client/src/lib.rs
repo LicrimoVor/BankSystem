@@ -1,1 +1,5 @@
-// transport, http_client (Option), grpc_client (Option), token (Option)
+pub mod grpc;
+
+pub mod dto {
+    tonic::include_proto!("dto");
+}
