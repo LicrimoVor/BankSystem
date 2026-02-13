@@ -1,3 +1,5 @@
+#[cfg(feature = "cli")]
+pub mod cli;
 mod grpc;
 mod http;
 pub mod types;

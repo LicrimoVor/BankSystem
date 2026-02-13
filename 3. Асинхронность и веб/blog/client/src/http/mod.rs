@@ -48,6 +48,7 @@ pub(self) fn with_auth(
     }
 }
 
+#[derive(Clone)]
 pub struct HttpClient {
     client: reqwest::Client,
     state: Arc<Mutex<State>>,

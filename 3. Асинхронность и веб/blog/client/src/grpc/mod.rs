@@ -32,6 +32,7 @@ pub(self) struct GrpcState {
     pub refresh_token: Option<String>,
 }
 
+#[derive(Clone)]
 pub struct GrpcClient {
     pub channel: Channel,
     state: Arc<Mutex<GrpcState>>,

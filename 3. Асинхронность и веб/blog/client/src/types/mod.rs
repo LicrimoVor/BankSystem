@@ -31,6 +31,17 @@ impl From<Status> for Error {
     }
 }
 
+impl Into<anyhow::Error> for Error {
+    fn into(self) -> anyhow::Error {
+        match self {
+            Error::Unauthenticated => anyhow::Error::msg("unauthenticated"),
+            Error::Reqwest(e) => e.into(),
+            Error::Inner(e) => anyhow::Error::msg(e),
+            Error::Grps(e) => e.into(),
+        }
+    }
+}
+
 pub trait Client {
     fn auth(&self) -> Box<dyn auth::AuthClientTrait>;
     fn general(&self) -> Box<dyn general::GeneralClientTrait>;
