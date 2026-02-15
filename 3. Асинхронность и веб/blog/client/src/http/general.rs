@@ -2,7 +2,6 @@ use crate::{
     http::{Error, State, url},
     types::general::GeneralClientTrait,
 };
-use prost::bytes::Bytes;
 use std::sync::{Arc, Mutex};
 
 pub struct GeneralClient {

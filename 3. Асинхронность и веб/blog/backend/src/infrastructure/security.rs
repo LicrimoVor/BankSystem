@@ -6,12 +6,9 @@ use argon2::{
 use chrono::{Duration, Utc};
 use rand::{RngExt, distr::Alphanumeric};
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
 use uuid::Uuid;
 
-pub const REFRESH_TOKEN_DURATION: Duration = Duration::days(31 * 5);
 pub const JWT_TOKEN_DURATION: Duration = Duration::hours(3);
-const HASH_SALT: &str = "salt_for_hashing";
 
 pub fn generate_password_hash(password: &str) -> Result<String, ErrorBlog> {
     let salt = SaltString::generate(&mut OsRng);
@@ -30,12 +27,6 @@ pub fn verify_password(password: &str, password_hash: &str) -> Result<bool, Erro
     Ok(Argon2::default()
         .verify_password(password.as_bytes(), &parsed_hash)
         .is_ok())
-}
-
-pub fn generate_hash(plain: &str) -> Result<String, ErrorBlog> {
-    let plain = format!("{}{}", plain, HASH_SALT);
-    let hash = Sha256::digest(plain.as_bytes());
-    Ok(hex::encode(hash))
 }
 
 #[derive(Debug, Serialize, Deserialize)]

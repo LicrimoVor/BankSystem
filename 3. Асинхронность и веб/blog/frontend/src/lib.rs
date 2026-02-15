@@ -32,7 +32,7 @@ pub struct Api {
 #[wasm_bindgen]
 impl Api {
     #[wasm_bindgen(constructor)]
-    pub async fn new(addr: String) -> Api {
+    pub fn new(addr: String) -> Api {
         let base = format!("{}/api", addr.trim_end_matches('/'));
 
         let state = State {
@@ -41,18 +41,20 @@ impl Api {
             jwt: None,
             refresh: None,
         };
-        let api = Api {
+        Api {
             state: Rc::new(RefCell::new(state)),
-        };
-        if let Ok(val) = wasm_bindgen_futures::JsFuture::from(api.general().health()).await {
+        }
+    }
+
+    #[wasm_bindgen]
+    pub async fn init(&self) {
+        if let Ok(val) = wasm_bindgen_futures::JsFuture::from(self.general().health()).await {
             utils::log(format!("Health: {}", val.as_string().unwrap()).as_str());
         };
         let csrf = get_cookie("csrf-token").await;
         if let Some(csrf) = csrf {
-            api.state.borrow_mut().csrf = csrf;
+            self.state.borrow_mut().csrf = csrf;
         }
-
-        api
     }
 
     #[wasm_bindgen]

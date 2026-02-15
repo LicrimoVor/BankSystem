@@ -5,7 +5,7 @@ use crate::{
     types::{Error, auth::AuthClientTrait},
 };
 use std::sync::{Arc, Mutex};
-use tonic::{Request, Status};
+use tonic::Request;
 
 pub struct AuthClient {
     inner: auth_service_client::AuthServiceClient<tonic::transport::Channel>,

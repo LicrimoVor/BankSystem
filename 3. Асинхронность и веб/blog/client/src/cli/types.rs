@@ -21,8 +21,8 @@ pub enum Transport {
     Grpc,
 }
 
-#[command(multicall = true)]
 #[derive(Parser)]
+#[command(multicall = true)]
 pub enum Command {
     Health,
     Ping,
