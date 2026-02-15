@@ -1,8 +1,9 @@
 use super::user::UserResponse;
 use crate::domain::{post::Post, user::User};
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct PostResponse {
     pub id: String,
     pub title: String,
@@ -25,14 +26,14 @@ impl PostResponse {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct PostUpdate {
     pub title: Option<String>,
     pub content: Option<String>,
     pub img_base64: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct PostCreate {
     pub title: String,
     pub content: String,

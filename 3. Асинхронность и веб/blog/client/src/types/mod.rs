@@ -31,6 +31,17 @@ impl From<Status> for Error {
     }
 }
 
+impl Into<String> for Error {
+    fn into(self) -> String {
+        match self {
+            Error::Unauthenticated => "unauthenticated".to_string(),
+            Error::Reqwest(e) => e.to_string(),
+            Error::Inner(e) => e,
+            Error::Grps(e) => e.to_string(),
+        }
+    }
+}
+
 impl Into<anyhow::Error> for Error {
     fn into(self) -> anyhow::Error {
         match self {

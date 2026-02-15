@@ -20,21 +20,21 @@ impl AuthClient {
         }
     }
 
-    async fn refresh(&mut self) -> Result<dto::Empty, Status> {
-        let mut state = self.state.lock().unwrap();
-        let refresh_token = state.refresh_token.clone();
-        let Some(refresh_token) = refresh_token else {
-            return Err(Status::internal("empty token"));
-        };
-        let RefreshResponse { access_token } = self
-            .inner
-            .refresh(Request::new(RefreshRequest { refresh_token }))
-            .await?
-            .into_inner();
+    // async fn refresh(&mut self) -> Result<dto::Empty, Status> {
+    //     let mut state = self.state.lock().unwrap();
+    //     let refresh_token = state.refresh_token.clone();
+    //     let Some(refresh_token) = refresh_token else {
+    //         return Err(Status::internal("empty token"));
+    //     };
+    //     let RefreshResponse { access_token } = self
+    //         .inner
+    //         .refresh(Request::new(RefreshRequest { refresh_token }))
+    //         .await?
+    //         .into_inner();
 
-        state.access_token = Some(access_token);
-        Ok(dto::Empty {})
-    }
+    //     state.access_token = Some(access_token);
+    //     Ok(dto::Empty {})
+    // }
 }
 
 #[async_trait::async_trait]

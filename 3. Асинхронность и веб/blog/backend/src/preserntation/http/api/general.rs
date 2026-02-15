@@ -7,15 +7,33 @@ use axum::{
     routing::get,
 };
 use tokio::{fs::File, io::AsyncReadExt};
+use utoipa::OpenApi;
 
+#[utoipa::path(
+    get,
+    tag = "general",
+    path = "/api/health",
+    responses((status = 200, body = String))
+)]
 async fn health() -> &'static str {
     "ok"
 }
 
+#[utoipa::path(
+    get,
+    tag = "general",
+    path = "/api/ping",
+    responses((status = 200, body = String))
+)]
 async fn ping() -> &'static str {
     "pong"
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/media/{filename}",
+    responses((status = 200, body = String))
+)]
 async fn media(
     State(state): State<AppState>,
     Path(filename): Path<String>,
@@ -47,3 +65,14 @@ pub fn router() -> Router<AppState> {
         .route("/ping", get(ping))
         .route("/media/{filename}", get(media))
 }
+
+#[derive(OpenApi)]
+#[openapi(
+    paths(
+        health,
+        ping,
+        media,
+    ),
+    tags((name = "general", description = "General API"))
+)]
+pub struct Doc;

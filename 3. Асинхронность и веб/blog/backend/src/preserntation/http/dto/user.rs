@@ -17,7 +17,7 @@ impl UserResponse {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct UserUpdate {
     pub username: Option<String>,
     pub email: Option<String>,

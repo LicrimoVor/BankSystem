@@ -5,14 +5,18 @@ pub(self) mod extractor;
 pub(self) mod middleware;
 use self::consts::{HEADER_CSRF_TOKEN, HEADER_X_ID_REQUEST, MAX_AGE_CORS};
 use self::middleware::{csrf::CsrfLayer, req_id::RequestIdLayer, time::TimeLayer};
-use crate::preserntation::http::api::auth;
+use crate::preserntation::http::api::{auth, general, post, user};
 use crate::{
     data::Database, infrastructure::config::Config, preserntation::http::middleware::jwt::JwtLayer,
 };
 use anyhow::Result;
 use axum::http::{HeaderValue, Method, header};
 use std::sync::Arc;
+use std::vec;
 use tower_http::cors::CorsLayer;
+use tracing::info;
+use utoipa::openapi::SecurityRequirement;
+use utoipa::openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme};
 use utoipa::{OpenApi, openapi};
 use utoipa_redoc::{Redoc, Servable};
 
@@ -23,32 +27,57 @@ pub(self) struct AppState {
 }
 
 /// Еще я без понятия как сделать security_schema (она просто не работает)
-/// Поэтому буду очень любезен если
+/// Поэтому буду очень любезен если подскажите как сделать ;)
 #[derive(utoipa::OpenApi)]
-#[openapi(
-    tags(
-        (name = "auth"),
-    ),
-)]
+#[openapi()]
 pub struct ApiDoc;
 
 impl ApiDoc {
     pub fn openapi() -> openapi::OpenApi {
-        let mut api =
-            openapi::OpenApi::new(openapi::Info::new("My API", "1.0.0"), openapi::Paths::new());
+        let mut api = openapi::OpenApi::builder()
+            .security(Some(vec![SecurityRequirement::new(
+                "jwt",
+                ["edit:items", "read:items"],
+            )]))
+            .build();
+        if let Some(schema) = api.components.as_mut() {
+            schema.add_security_scheme(
+                "jwt",
+                SecurityScheme::Http(
+                    HttpBuilder::new()
+                        .scheme(HttpAuthScheme::Bearer)
+                        .bearer_format("JWT")
+                        .build(),
+                ),
+            );
+        }
 
-        // Для PET-проекта думаю достаточно документации)
         api.merge(auth::Doc::openapi());
-        // api.merge(UserApi::openapi());
+        api.merge(user::Doc::openapi());
+        api.merge(post::Doc::openapi());
+        api.merge(general::Doc::openapi());
+
         api
     }
 }
 
 pub fn http_init(config: Arc<Config>, database: Arc<Database>) -> Result<axum::Router> {
-    let origin = config.cors_origin.parse::<HeaderValue>()?;
+    let origin = config
+        .cors_origin
+        .iter()
+        .map(|cors| cors.parse::<HeaderValue>())
+        .collect::<Result<Vec<HeaderValue>, _>>()?;
+
+    info!("CORS origin: {:?}", origin);
     let cors_layer = CorsLayer::new()
         .allow_credentials(true)
-        .allow_methods([Method::DELETE, Method::POST, Method::GET, Method::PATCH])
+        .allow_methods([
+            Method::DELETE,
+            Method::POST,
+            Method::GET,
+            Method::PATCH,
+            Method::OPTIONS,
+        ])
         .allow_origin(origin)
         .allow_headers([
             header::AUTHORIZATION,

@@ -55,7 +55,7 @@ where
                         .path("/")
                         .http_only(false)
                         .same_site(SameSite::Lax)
-                        .secure(true)
+                        // .secure(true)
                         .build();
                     set_cookie(&mut response, cookie);
                 }

@@ -15,8 +15,17 @@ use axum::{
     routing::{delete, get, patch, post},
 };
 use serde_json::json;
+use utoipa::OpenApi;
 use uuid::Uuid;
 
+#[utoipa::path(
+    post,
+    tag = "post",
+    path = "/api/post/",
+    request_body = PostCreate,
+    responses((status = 201, body = PostResponse)),
+    security(("jwt" = []))
+)]
 async fn create_post(
     State(state): State<AppState>,
     UserIdExtracor(user_id): UserIdExtracor,
@@ -42,6 +51,14 @@ async fn create_post(
         .into_response())
 }
 
+#[utoipa::path(
+    patch,
+    tag = "post",
+    path = "/api/post/{post_id}",
+    request_body = PostUpdate,
+    responses((status = 200, body = PostResponse)),
+    security(("jwt" = []))
+)]
 async fn update_post(
     State(state): State<AppState>,
     UserIdExtracor(user_id): UserIdExtracor,
@@ -64,6 +81,13 @@ async fn update_post(
     Ok((StatusCode::OK, Json(json!(PostResponse::new(user, post)))).into_response())
 }
 
+#[utoipa::path(
+    delete,
+    tag = "post",
+    path = "/api/post/{post_id}",
+    responses((status = 204)),
+    security(("jwt" = []))
+)]
 async fn delete_post(
     State(state): State<AppState>,
     UserIdExtracor(user_id): UserIdExtracor,
@@ -75,6 +99,12 @@ async fn delete_post(
     Ok((StatusCode::NO_CONTENT, ()).into_response())
 }
 
+#[utoipa::path(
+    get,
+    tag = "post",
+    path = "/api/post/{post_id}",
+    responses((status = 200, body = PostResponse))
+)]
 async fn get_by_id(
     State(state): State<AppState>,
     Path(post_id): Path<Uuid>,
@@ -88,11 +118,17 @@ async fn get_by_id(
     Ok((StatusCode::OK, Json(json!(PostResponse::new(user, post)))).into_response())
 }
 
-/// В идеале конечно сделать пагинацию...
+#[utoipa::path(
+    get,
+    tag = "post",
+    path = "/api/post/author/{email}",
+    responses((status = 200, body = Vec<PostResponse>))
+)]
 async fn gets_by_author(
     State(state): State<AppState>,
     Path(email): Path<String>,
 ) -> Result<impl IntoResponse, ErrorBlog> {
+    // В идеале конечно сделать пагинацию...
     let AppState { database, .. } = state;
     let post_service = PostService(database.clone());
     let user_service = UserService(database);
@@ -106,11 +142,18 @@ async fn gets_by_author(
     Ok((StatusCode::OK, Json(json!(data))).into_response())
 }
 
-/// В идеале конечно сделать пагинацию...
+#[utoipa::path(
+    get,
+    tag = "post",
+    path = "/api/post/me",
+    responses((status = 200, body = Vec<PostResponse>)),
+    security(("jwt" = []))
+)]
 async fn gets_me(
     State(state): State<AppState>,
     UserIdExtracor(user_id): UserIdExtracor,
 ) -> Result<impl IntoResponse, ErrorBlog> {
+    // В идеале конечно сделать пагинацию...
     let AppState { database, .. } = state;
     let post_service = PostService(database.clone());
     let user_service = UserService(database);
@@ -133,3 +176,20 @@ pub fn router() -> Router<AppState> {
         .route("/{post_id}", delete(delete_post))
         .route("/{post_id}", get(get_by_id))
 }
+
+#[derive(OpenApi)]
+#[openapi(
+    paths(
+        create_post,
+        update_post,
+        delete_post,
+        get_by_id,
+        gets_by_author,
+        gets_me,
+    ),
+    components(
+        schemas(PostCreate, PostResponse, PostUpdate),
+    ),
+    tags((name = "post", description = "Post API"))
+)]
+pub struct Doc;

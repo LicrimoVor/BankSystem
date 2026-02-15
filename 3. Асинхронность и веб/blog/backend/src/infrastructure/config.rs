@@ -1,5 +1,4 @@
 use std::path::Path;
-
 use tracing::info;
 
 /// Конфигурация приложения
@@ -11,7 +10,7 @@ pub struct Config {
     pub port_api: u16,
     pub port_grpc: u16,
     pub host: String,
-    pub cors_origin: String,
+    pub cors_origin: Vec<String>,
 }
 
 impl Config {
@@ -28,8 +27,9 @@ impl Config {
         let port_api = std::env::var("PORT_API")?.parse::<u16>()?;
         let port_grpc = std::env::var("PORT_GRPC")?.parse::<u16>()?;
         let host = std::env::var("HOST")?;
-        let cors_origin =
-            std::env::var("CORS_ORIGIN").unwrap_or_else(|_| format!("http://{}", host));
+        let cors_origin = std::env::var("CORS_ORIGIN")
+            .map(|cors| cors.split(" ").map(|s| s.to_string()).collect())
+            .unwrap_or_else(|_| vec![format!("http://{}", host)]);
 
         info!("Successfully loaded configuration");
         Ok(Self {

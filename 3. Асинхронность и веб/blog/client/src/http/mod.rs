@@ -3,11 +3,10 @@ use crate::types::{
     user::UserClientTrait,
 };
 use reqwest::{
-    Request, RequestBuilder, Response,
+    RequestBuilder, Response,
     header::{HeaderName, HeaderValue},
 };
 use std::sync::{Arc, Mutex};
-use tonic::client;
 mod auth;
 mod general;
 mod post;

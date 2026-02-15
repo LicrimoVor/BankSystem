@@ -15,16 +15,16 @@ impl GeneralClient {
         Self { client, state }
     }
 
-    pub async fn media(&mut self, filename: &str) -> Result<Bytes, Error> {
-        let res = self
-            .client
-            .get(url(&self.state, &format!("/media/{filename}")))
-            .send()
-            .await?;
+    // pub async fn media(&mut self, filename: &str) -> Result<Bytes, Error> {
+    //     let res = self
+    //         .client
+    //         .get(url(&self.state, &format!("/media/{filename}")))
+    //         .send()
+    //         .await?;
 
-        let bytes = res.bytes().await?;
-        Ok(bytes)
-    }
+    //     let bytes = res.bytes().await?;
+    //     Ok(bytes)
+    // }
 }
 
 #[async_trait::async_trait]

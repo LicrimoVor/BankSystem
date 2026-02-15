@@ -679,7 +679,7 @@
 		</div>
 
 		<script type="module">
-			import init, { Api } from "./pkg/frontend.js";
+			import init, { Api } from "../pkg/frontend.js";
 
 			let api = null;
 			let currentUser = null;
@@ -690,18 +690,11 @@
 				try {
 					await init();
 					const baseUrl = "http://127.0.0.1:8001";
-
-				// Parse CSRF token from cookies
-				let csrf = "";
-				const cookies = document.cookie.split(';');
-				for (let cookie of cookies) {
-					const [name, value] = cookie.trim().split('=');
-					if (name === 'csrf-token') {
-						csrf = decodeURIComponent(value);
-						break;
-					}
+					api = await new Api(baseUrl);
+					checkAuth();
+				} catch (err) {
+					console.error("Failed to initialize WASM:", err);
 				}
-
 			}
 
 			window.checkAuth = async function () {
@@ -848,12 +841,12 @@
 						feed.innerHTML = posts
 							.map(
 								(post) => `
-			                     <div class="post-card" onclick="viewPost('${post.id}')">
-			                         <h3>${escapeHtml(post.title)}</h3>
-			                         <div class="meta">${escapeHtml(post.author_email)} • ${new Date(post.created_at).toLocaleDateString("ru-RU")}</div>
-			                         <p>${escapeHtml(post.content.substring(0, 200))}...</p>
-			                     </div>
-			                 `,
+						<div class="post-card" onclick="viewPost('${post.id}')">
+							<h3>${escapeHtml(post.title)}</h3>
+							<div class="meta">${escapeHtml(post.author_email)} • ${new Date(post.created_at).toLocaleDateString("ru-RU")}</div>
+							<p>${escapeHtml(post.content.substring(0, 200))}...</p>
+						</div>
+					`,
 							)
 							.join("");
 					}
@@ -890,12 +883,12 @@
 						postsContainer.innerHTML = posts
 							.map(
 								(post) => `
-			                     <div class="post-card" onclick="viewPost('${post.id}')">
-			                         <h3>${escapeHtml(post.title)}</h3>
-			                         <div class="meta">${new Date(post.created_at).toLocaleDateString("ru-RU")}</div>
-			                         <p>${escapeHtml(post.content.substring(0, 200))}...</p>
-			                     </div>
-			                 `,
+						<div class="post-card" onclick="viewPost('${post.id}')">
+							<h3>${escapeHtml(post.title)}</h3>
+							<div class="meta">${new Date(post.created_at).toLocaleDateString("ru-RU")}</div>
+							<p>${escapeHtml(post.content.substring(0, 200))}...</p>
+						</div>
+					`,
 							)
 							.join("");
 					}
@@ -927,9 +920,9 @@
 					) {
 						actionsEl.classList.remove("hidden");
 						actionsEl.innerHTML = `
-			                     <button onclick="editPost('${postId}')">Редактировать</button>
-			                     <button class="danger" onclick="deletePost('${postId}')">Удалить</button>
-			                 `;
+						<button onclick="editPost('${postId}')">Редактировать</button>
+						<button class="danger" onclick="deletePost('${postId}')">Удалить</button>
+					`;
 					} else {
 						actionsEl.classList.add("hidden");
 					}
@@ -1026,7 +1019,11 @@
 					await api
 						.user()
 						.update(username || undefined, email || undefined);
-					currentUser = { ...currentUser, username, email };
+					currentUser = {
+						...currentUser,
+						username,
+						email,
+					};
 					navigateTo("profile");
 					loadProfile();
 				} catch (err) {

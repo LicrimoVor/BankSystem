@@ -10,12 +10,13 @@ use crate::{
     utils::cookie::set_cookie,
 };
 use axum::{Json, Router, extract::State, http::StatusCode, response::IntoResponse, routing::post};
-use cookie::{Cookie, SameSite};
+use cookie::{Cookie, SameSite, time::Duration};
 use serde_json::json;
 use utoipa::OpenApi;
 
 #[utoipa::path(
     post,
+    tag = "auth",
     path = "/api/auth/register",
     request_body = AuthRegister,
     responses((status = 200, body = AuthLoginResponse))
@@ -52,6 +53,7 @@ async fn register(
 
 #[utoipa::path(
     post,
+    tag = "auth",
     path = "/api/auth/login",
     request_body = AuthLoginRequest,
     responses((status = 200, body = AuthLoginResponse))
@@ -83,9 +85,10 @@ async fn login(
 
 #[utoipa::path(
     post,
+    tag = "auth",
     path = "/api/auth/logout",
     request_body = AuthLoginRequest,
-    security(("jwt" = [])),
+    security(("jwt" = ["edit:items", "read:items"])),
     responses((status = 204))
 )]
 async fn logout(
@@ -96,11 +99,22 @@ async fn logout(
     let AppState { database, .. } = state;
     let service = AuthService(database);
     service.logout(user_id, refresh).await?;
-    Ok((StatusCode::NO_CONTENT, ()).into_response())
+    let cookie = Cookie::build((COOKIE_REFRESH, ""))
+        .path("/api/auth/")
+        .http_only(true)
+        .secure(true)
+        .same_site(SameSite::Lax)
+        .max_age(Duration::ZERO)
+        .build();
+    let mut res = (StatusCode::NO_CONTENT, ()).into_response();
+    set_cookie(&mut res, cookie);
+
+    Ok(res)
 }
 
 #[utoipa::path(
     post,
+    tag = "auth", 
     path = "/api/auth/refresh",
     request_body = AuthLoginRequest,
     security(("bearerAuth" = [])),
@@ -113,7 +127,10 @@ async fn refresh(
     let AppState { database, config } = state;
     let service = AuthService(database);
     let jwt = service.refresh(config, refresh).await?;
-    Ok((StatusCode::OK, Json(json!(jwt))))
+    let data = serde_json::json!( {
+        "access_token": jwt.0,
+    });
+    Ok((StatusCode::OK, Json(data)))
 }
 
 pub fn router() -> Router<AppState> {

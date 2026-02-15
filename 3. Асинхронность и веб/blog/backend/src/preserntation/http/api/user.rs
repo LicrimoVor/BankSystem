@@ -15,7 +15,15 @@ use axum::{
     routing::{delete, get, patch},
 };
 use serde_json::json;
+use utoipa::OpenApi;
 
+#[utoipa::path(
+    get,
+    tag = "user",
+    path = "/api/user/me",
+    responses((status = 200, body = UserResponse)),
+    security(("jwt" = []))
+)]
 async fn me_user(
     State(state): State<AppState>,
     UserIdExtracor(user_id): UserIdExtracor,
@@ -27,6 +35,12 @@ async fn me_user(
     Ok((StatusCode::OK, Json(json!(UserResponse::new(user)))).into_response())
 }
 
+#[utoipa::path(
+    get,
+    tag = "user",
+    path = "/api/user/{user_email}",
+    responses((status = 200, body = UserResponse))
+)]
 async fn get_user_by_email(
     State(state): State<AppState>,
     Path(user_email): Path<String>,
@@ -38,6 +52,14 @@ async fn get_user_by_email(
     Ok((StatusCode::OK, Json(json!(UserResponse::new(user)))).into_response())
 }
 
+#[utoipa::path(
+    patch,
+    tag = "user",
+    path = "/api/user/me",
+    request_body = UserUpdate,
+    responses((status = 200, body = UserResponse)),
+    security(("jwt" = []))
+)]
 async fn update_user(
     State(state): State<AppState>,
     UserIdExtracor(user_id): UserIdExtracor,
@@ -54,6 +76,13 @@ async fn update_user(
     Ok((StatusCode::OK, Json(json!(UserResponse::new(user)))).into_response())
 }
 
+#[utoipa::path(
+    delete,
+    tag = "user",
+    path = "/api/user/me",
+    responses((status = 204)),
+    security(("jwt" = []))
+)]
 async fn delete_user(
     State(state): State<AppState>,
     UserIdExtracor(user_id): UserIdExtracor,
@@ -72,3 +101,18 @@ pub fn router() -> Router<AppState> {
         .route("/me", patch(update_user))
         .route("/me", delete(delete_user))
 }
+
+#[derive(OpenApi)]
+#[openapi(
+    paths(
+        me_user,
+        get_user_by_email,
+        update_user,
+        delete_user,
+    ),
+    components(
+        schemas(UserResponse, UserUpdate),
+    ),
+    tags((name = "user", description = "User API"))
+)]
+pub struct Doc;

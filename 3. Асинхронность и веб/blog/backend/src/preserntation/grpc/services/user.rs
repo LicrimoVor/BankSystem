@@ -1,8 +1,8 @@
 use super::super::{dto, user_service::*};
 use crate::{
-    application::{auth::AuthService, user::UserService},
+    application::user::UserService,
     data::Database,
-    infrastructure::{config::Config, errors::ErrorBlog},
+    infrastructure::config::Config,
     preserntation::grpc::{ResultService, extractor::extract_user_id},
 };
 use std::sync::Arc;
