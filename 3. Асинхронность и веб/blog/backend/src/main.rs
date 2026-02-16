@@ -1,5 +1,5 @@
 use tokio::net::TcpListener;
-use tracing::info;
+use tracing::{info, warn};
 
 use crate::{
     data::Database,
@@ -16,22 +16,24 @@ pub(crate) mod infrastructure;
 pub(crate) mod preserntation;
 pub(crate) mod utils;
 
-/// Флаг, указывающий на режим разработки
-/// (можно подтягивать из конфига, но для простоты оставим константой)
-const IS_DEV: bool = false;
-
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     dotenvy::dotenv().ok();
     logging_init();
 
     let config = Arc::new(Config::from_env()?);
-    let database = {
-        if !IS_DEV {
+    let database = match config.database_type.to_lowercase().as_str() {
+        "memory" => Arc::new(Database::Memory(Arc::new(State::new()))),
+        "postgres" => {
             let connection = create_connection(&config).await?;
             infrastructure::migrations::run_migrations(&connection).await?;
             Arc::new(Database::Postgres(connection))
-        } else {
+        }
+        _ => {
+            warn!(
+                "Unknown database type: {}. Using in-memory database.",
+                config.database_type
+            );
             Arc::new(Database::Memory(Arc::new(State::new())))
         }
     };
