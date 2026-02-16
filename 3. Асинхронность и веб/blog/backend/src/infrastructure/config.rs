@@ -27,6 +27,7 @@ impl Config {
         }
         let media_path = std::env::var("MEDIA_PATH").unwrap_or_else(|_| {
             warn!("MEDIA_PATH is not set. Using default path: ./media");
+            std::fs::DirBuilder::new().create("./media").unwrap();
             "./media".into()
         });
         Path::new(&media_path).exists().then(|| ()).ok_or_else(|| {
