@@ -2,11 +2,10 @@ use anyhow::Result;
 use clap::Parser;
 use client::{
     GrpcClient, HttpClient,
-    cli::{self, Cli, Command, Transport},
     types::{Client, Error},
 };
-#[cfg(not(feature = "cli"))]
-compile_error!("feature 'cli' is not enabled");
+mod model;
+use model::{Cli, Command, Transport};
 
 pub async fn init_client(
     transport: &str,
@@ -79,9 +78,9 @@ async fn main() -> Result<(), Error> {
             Command::Ping => {
                 println!("{}", general.ping().await?);
             }
-            Command::Auth { cmd } => cli::auth::run(client.clone(), cmd).await?,
-            Command::User { cmd } => cli::user::run(client.clone(), cmd).await?,
-            Command::Post { cmd } => cli::post::run(client.clone(), cmd).await?,
+            Command::Auth { cmd } => model::auth::run(client.clone(), cmd).await?,
+            Command::User { cmd } => model::user::run(client.clone(), cmd).await?,
+            Command::Post { cmd } => model::post::run(client.clone(), cmd).await?,
         };
     }
 

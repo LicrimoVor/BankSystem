@@ -1,5 +1,5 @@
 use super::types::AuthCmd;
-use crate::types::{Client, Error};
+use client::types::{Client, Error};
 use std::sync::Arc;
 
 pub async fn run(client: Arc<dyn Client>, cmd: AuthCmd) -> Result<(), Error> {

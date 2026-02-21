@@ -558,19 +558,28 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c3e64b0cc0439b12df2fa678eae89a1c56a529fd067a9115f7827f1fffd22b32"
 
 [[package]]
+name = "cli"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "client",
+ "shlex",
+ "tokio",
+]
+
+[[package]]
 name = "client"
 version = "0.6.1"
 dependencies = [
  "anyhow",
  "async-trait",
  "base64",
- "clap",
  "prost",
  "prost-types",
  "reqwest",
  "serde",
  "serde_json",
- "shlex",
  "tokio",
  "tonic",
  "tonic-prost",
