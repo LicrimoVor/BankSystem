@@ -1,0 +1,5 @@
+{
+	"rust-analyzer.cargo.target": null,
+	"rust-analyzer.checkOnSave": false,
+	"rust-analyzer.cargo.extraArgs": []
+}

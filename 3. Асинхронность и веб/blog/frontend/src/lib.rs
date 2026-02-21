@@ -14,6 +14,8 @@ pub use post::Post;
 pub use user::User;
 
 use crate::utils::get_cookie;
+#[cfg(not(target_arch = "wasm32"))]
+compile_error!("This crate only supports wasm32 target");
 
 pub(crate) struct State {
     pub base_url: String,

@@ -5,7 +5,7 @@ use std::{
     time::Instant,
 };
 use tower::{Layer, Service};
-use tracing::info;
+use tracing::{info, warn};
 
 use crate::preserntation::grpc::RequestId;
 
