@@ -8,8 +8,8 @@
       "args": [],
       "stopAtEntry": false,
       "externalConsole": true,
-      "cwd": "d:/Code/Rust/yandex/4. Механизм FFI и unsafe/dynamic_links",
-      "program": "d:/Code/Rust/yandex/4. Механизм FFI и unsafe/dynamic_links/build/Debug/outDebug",
+      "cwd": "d:/Code/Rust/yandex/4. Механизм FFI и unsafe/c_json_error",
+      "program": "d:/Code/Rust/yandex/4. Механизм FFI и unsafe/c_json_error/build/Debug/outDebug",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
       "setupCommands": [
