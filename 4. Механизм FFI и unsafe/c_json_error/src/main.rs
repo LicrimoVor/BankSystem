@@ -20,17 +20,17 @@ extern "C" fn safe_strerror_s(error: c_int) -> Result<String, Error> {
 }
 
 fn main() {
-    // let json: *mut cJSON = unsafe { cJSON_Parse(TEST_JSON.as_ptr()) };
+    let json: *mut cJSON = unsafe { cJSON_Parse(TEST_JSON.as_ptr()) };
 
-    // let json_str = unsafe { cJSON_PrintUnformatted(json) };
-    // let json_str = unsafe { CString::from_raw(json_str) };
-    // let json_str = json_str.to_str().unwrap();
-    // assert_eq!(json_str, r#"{"meaning_of_life":42}"#);
+    let json_str = unsafe { cJSON_PrintUnformatted(json) };
+    let json_str = unsafe { CString::from_raw(json_str) };
+    let json_str = json_str.to_str().unwrap();
+    assert_eq!(json_str, r#"{"meaning_of_life":42}"#);
 
-    // let meaning_of_life = unsafe { cJSON_GetObjectItem(json, c"meaning_of_life".as_ptr()) };
-    // let meaning_of_life = unsafe { cJSON_GetNumberValue(meaning_of_life) };
-    // println!("Meaning of life: {}", meaning_of_life);
-    // assert_eq!(meaning_of_life, 42f64);
+    let meaning_of_life = unsafe { cJSON_GetObjectItem(json, c"meaning_of_life".as_ptr()) };
+    let meaning_of_life = unsafe { cJSON_GetNumberValue(meaning_of_life) };
+    println!("Meaning of life: {}", meaning_of_life);
+    assert_eq!(meaning_of_life, 42f64);
 
     for i in -128..128 {
         let res = safe_strerror_s(i);
