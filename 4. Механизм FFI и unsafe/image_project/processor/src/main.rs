@@ -1,9 +1,11 @@
 use crate::plugin::{Plugin, PluginInterface};
+use anyhow::anyhow;
 use clap::Parser;
 use std::{env, fs};
 use tracing::{error, info, warn};
 mod cli;
 mod plugin;
+use std::env::consts::{DLL_PREFIX, DLL_SUFFIX};
 
 fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt().init();
@@ -20,21 +22,26 @@ fn main() -> anyhow::Result<()> {
         error!("jpg не поддерживается");
         return Err(anyhow::anyhow!("jpg не поддерживается"));
     }
+    let plugin_name = format!("{DLL_PREFIX}{plugin}{DLL_SUFFIX}");
 
     let root = env::current_dir()?;
     info!("Собираем плагин");
     let plugin = match plugin_path {
-        Some(plugin_path) => Plugin::new(&plugin_path),
+        Some(plugin_path) => Plugin::new(&format!("{plugin_path}/{plugin_name}")),
         None => {
             // сначала ищем в release
-            let plugin_path = root.join("target").join("release").join(plugin.clone());
+            let plugin_path = root
+                .join("target")
+                .join("release")
+                .join(plugin_name.clone());
+
             info!("Путь к плагину: {plugin_path:?}");
             match Plugin::new(plugin_path.to_str().unwrap()) {
                 Ok(plugin) => Ok(plugin),
                 Err(_) => {
-                    warn!("Не получилось найти в release");
                     // потом ищем в debug
-                    let plugin_path = root.join("target").join("debug").join(plugin);
+                    info!("Не получилось найти в release");
+                    let plugin_path = root.join("target").join("debug").join(plugin_name);
                     info!("Путь к плагину: {plugin_path:?}");
                     match Plugin::new(plugin_path.to_str().unwrap()) {
                         Ok(plugin) => Ok(plugin),
@@ -58,9 +65,8 @@ fn main() -> anyhow::Result<()> {
     info!("Обрабатываем изображение");
     interface.process_image(img.width(), img.height(), &mut data, params)?;
     info!("Сохраняем изображение");
-    let new_img = image::RgbaImage::from_vec(img.width(), img.height(), data).ok_or(
-        std::io::Error::new(std::io::ErrorKind::InvalidData, "Invalid data"),
-    )?;
+    let new_img = image::RgbaImage::from_vec(img.width(), img.height(), data)
+        .ok_or(anyhow!("Invalid data"))?;
     new_img.save(&output)?;
 
     info!("Готово");
