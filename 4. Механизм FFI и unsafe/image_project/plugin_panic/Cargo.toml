@@ -1,0 +1,15 @@
+[package]
+name = "plugin_panic"
+version = "0.1.0"
+edition = "2024"
+
+[profile.release]
+panic = "unwind"
+
+[profile.dev]
+panic = "unwind"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]

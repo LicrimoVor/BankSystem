@@ -46,10 +46,26 @@ pub unsafe extern "C" fn process_image(
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use std::ffi::CString;
 
     #[test]
-    fn it_works() {
-        let result = 2 + 2;
-        assert_eq!(result, 4);
+    fn test_image_mirror_valid() {
+        let data = vec![1, 2, 3, 4, 5, 6, 7, 8];
+        let mirror_data = vec![5, 6, 7, 8, 1, 2, 3, 4];
+        let mut data_clone = data.clone();
+        let data_ptr = data_clone.as_mut_ptr();
+        let params = CString::new("{}").unwrap();
+        let params_ptr = params.as_ptr();
+
+        let result = unsafe { process_image(2, 1, data_ptr, params_ptr) };
+        assert_eq!(result, 0);
+        assert_eq!(data_clone, mirror_data);
+    }
+
+    #[test]
+    fn test_image_mirror_invalid() {
+        let result = unsafe { process_image(2, 1, std::ptr::null_mut(), std::ptr::null()) };
+        assert_eq!(result, 1);
     }
 }

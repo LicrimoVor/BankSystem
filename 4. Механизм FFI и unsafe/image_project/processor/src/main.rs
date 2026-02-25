@@ -63,7 +63,14 @@ fn main() -> anyhow::Result<()> {
     let img = image::open(&input)?.to_rgba8();
     let mut data = img.to_vec();
     info!("Обрабатываем изображение");
-    interface.process_image(img.width(), img.height(), &mut data, params)?;
+    interface
+        .process_image(img.width(), img.height(), &mut data, params)
+        .map_err(|e| {
+            info!("123");
+            error!("Произошла ошибка: {e}");
+            e
+        })?;
+
     info!("Сохраняем изображение");
     let new_img = image::RgbaImage::from_vec(img.width(), img.height(), data)
         .ok_or(anyhow!("Invalid data"))?;

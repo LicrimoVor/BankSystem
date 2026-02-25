@@ -1,12 +1,20 @@
 use anyhow::{Result, anyhow};
 use libloading::Symbol;
-use std::ffi::{CString, c_char, c_int};
+use std::{
+    ffi::{CString, c_char, c_int},
+    panic::{AssertUnwindSafe, catch_unwind},
+};
 use tracing::info;
 
 #[allow(non_camel_case_types)]
 type process_image<'a> = Symbol<
     'a,
-    unsafe fn(width: u32, height: u32, rgba_data: *mut u8, params: *const c_char) -> c_int,
+    unsafe extern "C-unwind" fn(
+        width: u32,
+        height: u32,
+        rgba_data: *mut u8,
+        params: *const c_char,
+    ) -> c_int,
 >;
 
 pub struct PluginInterface<'a> {
@@ -71,9 +79,15 @@ impl<'a> PluginInterface<'a> {
         }
 
         let rgba_data = rgba_data.as_mut_ptr();
-        match unsafe { (self.inner_process_image)(width, height, rgba_data, ptr.as_ptr()) } {
-            0 => Ok(()),
-            _ => Err(anyhow!("Plugin error")),
+        // пытался я перехватить, но не получилось и ошибка прекращает процесс
+        let result = catch_unwind(AssertUnwindSafe(|| unsafe {
+            (self.inner_process_image)(width, height, rgba_data, ptr.as_ptr())
+        }));
+
+        match result {
+            Ok(0) => Ok(()),
+            Ok(_) => Err(anyhow!("Plugin error")),
+            Err(_) => Err(anyhow!("Plugin panic")),
         }
     }
 }
