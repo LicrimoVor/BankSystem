@@ -1,0 +1,23 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"type": "lldb",
+			"request": "launch",
+			"name": "Debug executable 'your_project'",
+			"cargo": {
+				"args": [
+					"build",
+					"--bin=your_project",
+					"--package=your_project"
+				],
+				"filter": {
+					"name": "your_project",
+					"kind": "bin"
+				}
+			},
+			"args": [],
+			"cwd": "${workspaceFolder}"
+		}
+	]
+}
