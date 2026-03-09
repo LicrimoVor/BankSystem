@@ -1,4 +1,4 @@
-use broken_app::{algo, leak_buffer, normalize, sum_even};
+use broken_app::{algo, concurrency::race_increment, leak_buffer, normalize, sum_even};
 
 fn main() {
     let nums = [1, 2, 3, 4];
@@ -10,9 +10,15 @@ fn main() {
     let text = " Hello World ";
     println!("normalize: {}", normalize(text));
 
-    let fib = algo::slow_fib(20);
-    println!("fib(20): {}", fib);
+    let fib = algo::slow_fib(30);
+    println!("fib(30): {}", fib);
 
-    let uniq = algo::slow_dedup(&[1, 2, 2, 3, 1, 4, 4]);
+    let uniq = algo::slow_dedup(&[
+        1, 2, 2, 3, 1, 4, 4, 2, 2, 3, 1, 4, 4, 2, 2, 3, 1, 4, 4, 2, 2, 3, 1, 4, 4, 2, 2, 3, 1, 4,
+        4, 2, 2, 3, 1, 4, 4, 2, 2, 3, 1, 4, 4, 2, 2, 3, 1, 4, 4, 2, 2, 3, 1, 4, 4, 2, 2, 3, 1, 4,
+    ]);
     println!("dedup: {:?}", uniq);
+
+    let race = race_increment(1000, 100);
+    println!("race: {}", race);
 }

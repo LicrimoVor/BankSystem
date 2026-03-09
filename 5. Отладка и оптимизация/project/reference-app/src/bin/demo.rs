@@ -10,9 +10,12 @@ fn main() {
     let text = " Hello\tWorld ";
     println!("normalize: {}", normalize(text));
 
-    let fib = algo::fast_fib(20);
-    println!("fib(20): {}", fib);
+    let fib = algo::fast_fib(30);
+    println!("fib(30): {}", fib);
 
-    let uniq = algo::fast_dedup(&[1, 2, 2, 3, 1, 4, 4]);
+    let uniq = algo::fast_dedup(&[
+        1, 2, 2, 3, 1, 4, 4, 2, 2, 3, 1, 4, 4, 2, 2, 3, 1, 4, 4, 2, 2, 3, 1, 4, 4, 2, 2, 3, 1, 4,
+        4, 2, 2, 3, 1, 4, 4, 2, 2, 3, 1, 4, 4, 2, 2, 3, 1, 4, 4, 2, 2, 3, 1, 4, 4, 2, 2, 3, 1, 4,
+    ]);
     println!("dedup: {:?}", uniq);
 }
