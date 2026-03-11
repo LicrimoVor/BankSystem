@@ -1,0 +1,65 @@
+cargo +nightly miri test
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.11s
+     Running unittests src\lib.rs (target\miri\x86_64-pc-windows-msvc\debug\deps\broken_app-0f352b00ed9b211e.exe)
+
+running 6 tests
+test algo::tests::dedup_preserves_uniques ... ok
+test algo::tests::fast_fib_small_numbers ... ok
+test algo::tests::lib_fib_small_numbers ... ok
+test algo::tests::slow_fib_small_numbers ... ok
+test concurrency::tests::test_race_increment ... ok
+test concurrency::tests::test_reset_counter ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 11.19s
+
+     Running unittests src\bin\demo.rs (target\miri\x86_64-pc-windows-msvc\debug\deps\demo-b8bdb78381cee6b2.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests\average_positive.rs (target\miri\x86_64-pc-windows-msvc\debug\deps\average_positive-aab4966c54ddcbdd.exe)
+
+running 4 tests
+test averages_no_positive ... ok
+test averages_only_positive ... ok
+test averages_positive_empty ... ok
+test averages_positive_zeros ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.62s
+
+     Running tests\leak_buffer.rs (target\miri\x86_64-pc-windows-msvc\debug\deps\leak_buffer-571ea7d026dc4b9f.exe)
+
+running 4 tests
+test counts_empty_buffer ... ok
+test counts_non_zero_bytes ... ok
+test counts_one_byte ... ok
+test counts_zero_bytes ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.57s
+
+     Running tests\normalize_text.rs (target\miri\x86_64-pc-windows-msvc\debug\deps\normalize_text-12caa91bb7877e37.exe)
+
+running 4 tests
+test normalize_many_space ... ok
+test normalize_others ... ok
+test normalize_simple ... ok
+test normalize_tabs ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.72s
+
+     Running tests\sum_even.rs (target\miri\x86_64-pc-windows-msvc\debug\deps\sum_even-225500ea5c82f870.exe)
+
+running 4 tests
+test sums_empty ... ok
+test sums_even_neg_numbers ... ok
+test sums_even_pos_numbers ... ok
+test sums_one ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.66s
+
+   Doc-tests broken_app
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s

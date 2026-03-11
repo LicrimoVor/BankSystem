@@ -10,7 +10,7 @@ fn main() {
     let text = " Hello World ";
     println!("normalize: {}", normalize(text));
 
-    let fib = algo::slow_fib(30);
+    let fib = algo::lib_fib(30);
     println!("fib(30): {}", fib);
 
     let uniq = algo::slow_dedup(&[

@@ -7,7 +7,7 @@ fn bench_sum_even(c: &mut Criterion) {
 }
 
 fn bench_fib(c: &mut Criterion) {
-    c.bench_function("fib_broken", |b| b.iter(|| algo::fast_fib(32)));
+    c.bench_function("fib_broken", |b| b.iter(|| algo::lib_fib(32)));
 }
 
 fn bench_dedup(c: &mut Criterion) {

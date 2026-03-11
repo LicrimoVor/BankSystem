@@ -1,3 +1,4 @@
+use fib_rs::Fib;
 use std::collections::HashMap;
 
 /// Намеренно низкопроизводительная реализация.
@@ -20,7 +21,7 @@ pub fn slow_dedup(values: &[u64]) -> Vec<u64> {
     out
 }
 
-/// Намеренно низкопроизводительная реализация.
+/// Бестрая реализация реализация.
 pub fn fast_dedup(values: &[u64]) -> Vec<u64> {
     let mut out = Vec::new();
     for v in values {
@@ -65,6 +66,10 @@ fn fib(n: u64, memo: &mut HashMap<u64, u64>) -> u64 {
     }
 }
 
+pub fn lib_fib(n: u64) -> u64 {
+    Fib::single(n as u128).to_u64_digits()[0]
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -83,5 +88,10 @@ mod tests {
     #[test]
     fn fast_fib_small_numbers() {
         assert_eq!(fast_fib(10), 55);
+    }
+
+    #[test]
+    fn lib_fib_small_numbers() {
+        assert_eq!(lib_fib(10), 55);
     }
 }

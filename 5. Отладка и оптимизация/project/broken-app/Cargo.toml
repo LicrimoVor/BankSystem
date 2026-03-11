@@ -7,6 +7,7 @@ edition = "2024"
 debug = true
 
 [dependencies]
+fib-rs = "1.2"
 
 [dev-dependencies]
 criterion = {version = "0.8", features = ["html_reports"]}
