@@ -4,6 +4,7 @@ WORKDIR /app
 
 COPY . .
 RUN apt-get -y update
+RUN apt install -y clang lld
 RUN apt-get -y install valgrind curl linux-perf && \ 
     apt-get install -y linux-tools-generic || true
 
