@@ -1,0 +1,9 @@
+RUSTFLAGS="-Zsanitizer=thread" cargo +nightly run -Z build-std --target x86_64-unknown-linux-gnu
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.09s
+     Running `target/x86_64-unknown-linux-gnu/debug/demo`
+sum_even: 6
+non-zero bytes: 3
+normalize: helloworld
+fib(30): 832040
+dedup: [1, 2, 3, 4]
+race: 100000
