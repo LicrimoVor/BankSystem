@@ -1,0 +1,3 @@
+[workspace]
+members = ["invariants-practice","refactor-practice", "strategy-pattern", "tightness-practice", "trading-pattern", "ub-analysis"]
+resolver = "3"
