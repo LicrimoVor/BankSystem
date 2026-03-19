@@ -19,6 +19,8 @@ impl Parsable for AssetDsc {
     >;
     fn parser() -> Self::Parser {
         // комбинаторы парсеров - это круто
+
+        // Вроде круто, но как такое придумывать самому :|
         map(
             delimited(
                 all2(

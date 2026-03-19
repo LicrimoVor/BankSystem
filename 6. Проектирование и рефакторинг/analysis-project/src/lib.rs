@@ -1,4 +1,4 @@
 pub mod domain;
-pub mod logger;
+mod logger;
 pub mod parser;
-pub mod utils;
+pub use logger::*;

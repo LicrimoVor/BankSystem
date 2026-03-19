@@ -13,7 +13,6 @@
 //  -- по requestid
 //  -- по ошибкам
 //  -- по изменению счёта (купить/продать)
-
 // Модель данных:
 // - Пользователь (userid, имя)
 // - Вещи
@@ -64,12 +63,9 @@ fn main() {
         filename,
         std::env::current_dir().unwrap().to_string_lossy()
     );
-    let file: std::rc::Rc<std::cell::RefCell<Box<dyn analysis::utils::MyReader>>> =
-        std::rc::Rc::new(std::cell::RefCell::new(Box::new(
-            std::fs::File::open(filename).unwrap(),
-        )));
+    let file = std::fs::File::open(filename).unwrap();
 
-    let logs = analysis::logger::read_log(file.clone(), analysis::logger::READ_MODE_ALL, vec![]);
+    let logs = analysis::read_log(file, analysis::ReadMode::All, vec![]);
     println!("got logs:");
     logs.iter().for_each(|parsed| println!("  {:?}", parsed));
 }

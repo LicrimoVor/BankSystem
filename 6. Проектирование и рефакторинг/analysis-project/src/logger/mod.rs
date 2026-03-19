@@ -1,10 +1,11 @@
 mod app;
+mod reader;
 mod system;
-mod utils;
+pub(self) mod utils;
 use crate::parser::prelude::*;
 pub use app::*;
+pub use reader::*;
 pub use system::*;
-pub use utils::*;
 
 /// Все виды логов
 #[derive(Debug, Clone, PartialEq)]
@@ -58,7 +59,7 @@ pub static LOG_LINE_PARSER: LogLineParser = LogLineParser {
 
 #[cfg(test)]
 mod test {
-    use super::{app::*, system::*, *};
+    use super::*;
     use crate::domain::*;
 
     #[test]
