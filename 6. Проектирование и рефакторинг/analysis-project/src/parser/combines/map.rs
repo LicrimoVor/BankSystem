@@ -9,7 +9,7 @@ pub struct Map<T, M> {
 }
 impl<T: Parser, Dest: Sized, M: Fn(T::Dest) -> Dest> Parser for Map<T, M> {
     type Dest = Dest;
-    fn parse(&self, input: String) -> Result<(String, Self::Dest), ()> {
+    fn parse<'a>(&self, input: &'a str) -> Result<(&'a str, Self::Dest), ()> {
         self.parser
             .parse(input)
             .map(|(remaining, pre_result)| (remaining, (self.map)(pre_result)))

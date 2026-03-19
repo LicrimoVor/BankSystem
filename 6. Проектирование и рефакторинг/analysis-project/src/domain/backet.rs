@@ -1,3 +1,6 @@
+use super::user::UserBackets;
+use crate::parser::prelude::*;
+
 /// Пара 'сокращённое название предмета' - 'его описание'
 #[derive(Debug, Clone, PartialEq)]
 pub struct AssetDsc {
@@ -70,5 +73,90 @@ impl Parsable for Announcements {
             Announcements(vec)
         }
         map(list(UserBackets::parser()), from_vec)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_asset_dsc() {
+        assert_eq!(
+            all2(
+                strip_whitespace(tag("AssetDsc")),
+                strip_whitespace(tag("{"))
+            )
+            .parse(" AssetDsc { ".into()),
+            Ok(("".into(), ((), ())))
+        );
+
+        assert_eq!(
+            AssetDsc::parser().parse(r#"AssetDsc{"id":"usd","dsc":"USA dollar",}"#.into()),
+            Ok((
+                "".into(),
+                AssetDsc {
+                    id: "usd".into(),
+                    dsc: "USA dollar".into()
+                }
+            ))
+        );
+        assert_eq!(
+            AssetDsc::parser()
+                .parse(r#" AssetDsc { "id" : "usd" , "dsc" : "USA dollar" , } "#.into()),
+            Ok((
+                "".into(),
+                AssetDsc {
+                    id: "usd".into(),
+                    dsc: "USA dollar".into()
+                }
+            ))
+        );
+        assert_eq!(
+            AssetDsc::parser()
+                .parse(r#" AssetDsc { "id" : "usd" , "dsc" : "USA dollar" , } nice "#.into()),
+            Ok((
+                "nice ".into(),
+                AssetDsc {
+                    id: "usd".into(),
+                    dsc: "USA dollar".into()
+                }
+            ))
+        );
+
+        assert_eq!(
+            AssetDsc::parser().parse(r#"AssetDsc{"dsc":"USA dollar","id":"usd",}"#.into()),
+            Ok((
+                "".into(),
+                AssetDsc {
+                    id: "usd".into(),
+                    dsc: "USA dollar".into()
+                }
+            ))
+        );
+    }
+
+    #[test]
+    fn test_backet() {
+        assert_eq!(
+            Backet::parser().parse(r#"Backet{"asset_id":"usd","count":42,}"#.into()),
+            Ok((
+                "".into(),
+                Backet {
+                    asset_id: "usd".into(),
+                    count: 42
+                }
+            ))
+        );
+        assert_eq!(
+            Backet::parser().parse(r#"Backet{"count":42,"asset_id":"usd",}"#.into()),
+            Ok((
+                "".into(),
+                Backet {
+                    asset_id: "usd".into(),
+                    count: 42
+                }
+            ))
+        );
     }
 }

@@ -1,23 +1,24 @@
-pub mod as_is;
+mod as_is;
 pub mod combines;
 pub mod stdp;
-pub mod tag;
-pub mod unquote;
+mod tag;
+mod unquote;
 pub(self) mod utils;
 
 /// Трейт, чтобы **реализовывать** и **требовать** метод 'распарсь и покажи,
 /// что распарсить осталось'
-trait Parser {
+pub trait Parser {
     type Dest;
-    // подсказка: здесь можно переделать
-    // на `fn parse<'a>(&self,input:&'a str)->Result<(&'a str, Self::Dest)>`
-    // (возможно, самое трудоёмкое; в своих проектах проще сразу не допускать)
-    fn parse<'a>(&self, input: String) -> Result<(String, Self::Dest), ()>;
+    fn parse<'a>(&self, input: &'a str) -> Result<(&'a str, Self::Dest), ()>;
 }
 
 /// Вспомогательный трейт, чтобы писать собственный десериализатор
 /// (по решаемой задаче - отдалённый аналог `serde::Deserialize`)
-trait Parsable: Sized {
+pub trait Parsable: Sized {
     type Parser: Parser<Dest = Self>;
     fn parser() -> Self::Parser;
+}
+
+pub mod prelude {
+    pub use super::{Parsable, Parser, as_is::*, combines::*, stdp, tag::*, unquote::*};
 }

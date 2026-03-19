@@ -1,27 +1,7 @@
-/// Все виды логов
-#[derive(Debug, Clone, PartialEq)]
-pub enum LogKind {
-    System(SystemLogKind),
-    App(AppLogKind),
-}
-/// Все виды [системных](LogKind) логов
-#[derive(Debug, Clone, PartialEq)]
-pub enum SystemLogKind {
-    Error(SystemLogErrorKind),
-    Trace(SystemLogTraceKind),
-}
-/// Trace [системы](SystemLogKind)
-#[derive(Debug, Clone, PartialEq)]
-pub enum SystemLogTraceKind {
-    SendRequest(String),
-    GetResponse(String),
-}
-/// Error [системы](SystemLogKind)
-#[derive(Debug, Clone, PartialEq)]
-pub enum SystemLogErrorKind {
-    NetworkError(String),
-    AccessDenied(String),
-}
+use super::{LogKind, system::SystemLogKind};
+use crate::domain::{Announcements, AuthData, UserBacket, UserCash};
+use crate::parser::prelude::*;
+
 /// Все виды [логов приложения](LogKind) логов
 #[derive(Debug, Clone, PartialEq)]
 pub enum AppLogKind {
@@ -68,108 +48,7 @@ pub enum AppLogJournalKind {
     BuyAsset(UserBacket),
     SellAsset(UserBacket),
 }
-impl Parsable for SystemLogErrorKind {
-    type Parser = Preceded<
-        Tag,
-        Alt<(
-            Map<
-                Preceded<StripWhitespace<Tag>, StripWhitespace<Unquote>>,
-                fn(String) -> SystemLogErrorKind,
-            >,
-            Map<
-                Preceded<StripWhitespace<Tag>, StripWhitespace<Unquote>>,
-                fn(String) -> SystemLogErrorKind,
-            >,
-        )>,
-    >;
-    fn parser() -> Self::Parser {
-        preceded(
-            tag("Error"),
-            alt2(
-                map(
-                    preceded(
-                        strip_whitespace(tag("NetworkError")),
-                        strip_whitespace(unquote()),
-                    ),
-                    |error| SystemLogErrorKind::NetworkError(error),
-                ),
-                map(
-                    preceded(
-                        strip_whitespace(tag("AccessDenied")),
-                        strip_whitespace(unquote()),
-                    ),
-                    |error| SystemLogErrorKind::AccessDenied(error),
-                ),
-            ),
-        )
-    }
-}
-impl Parsable for SystemLogTraceKind {
-    type Parser = Preceded<
-        Tag,
-        Alt<(
-            Map<
-                Preceded<StripWhitespace<Tag>, StripWhitespace<Unquote>>,
-                fn(String) -> SystemLogTraceKind,
-            >,
-            Map<
-                Preceded<StripWhitespace<Tag>, StripWhitespace<Unquote>>,
-                fn(String) -> SystemLogTraceKind,
-            >,
-        )>,
-    >;
-    fn parser() -> Self::Parser {
-        preceded(
-            tag("Trace"),
-            alt2(
-                map(
-                    preceded(
-                        strip_whitespace(tag("SendRequest")),
-                        strip_whitespace(unquote()),
-                    ),
-                    |request| SystemLogTraceKind::SendRequest(request),
-                ),
-                map(
-                    preceded(
-                        strip_whitespace(tag("GetResponse")),
-                        strip_whitespace(unquote()),
-                    ),
-                    |response| SystemLogTraceKind::GetResponse(response),
-                ),
-            ),
-        )
-    }
-}
-impl Parsable for SystemLogKind {
-    type Parser = StripWhitespace<
-        Preceded<
-            Tag,
-            Alt<(
-                Map<
-                    <SystemLogTraceKind as Parsable>::Parser,
-                    fn(SystemLogTraceKind) -> SystemLogKind,
-                >,
-                Map<
-                    <SystemLogErrorKind as Parsable>::Parser,
-                    fn(SystemLogErrorKind) -> SystemLogKind,
-                >,
-            )>,
-        >,
-    >;
-    fn parser() -> Self::Parser {
-        strip_whitespace(preceded(
-            tag("System::"),
-            alt2(
-                map(SystemLogTraceKind::parser(), |trace| {
-                    SystemLogKind::Trace(trace)
-                }),
-                map(SystemLogErrorKind::parser(), |error| {
-                    SystemLogKind::Error(error)
-                }),
-            ),
-        ))
-    }
-}
+
 impl Parsable for AppLogErrorKind {
     type Parser = Preceded<
         Tag,
@@ -434,46 +313,3 @@ impl Parsable for LogKind {
         ))
     }
 }
-
-/// Строка логов, [лог](AppLogKind) с `request_id`
-#[derive(Debug, Clone, PartialEq)]
-pub struct LogLine {
-    pub kind: LogKind,
-    pub request_id: u32,
-}
-impl Parsable for LogLine {
-    type Parser = Map<
-        All<(
-            <LogKind as Parsable>::Parser,
-            StripWhitespace<Preceded<Tag, stdp::U32>>,
-        )>,
-        fn((LogKind, u32)) -> Self,
-    >;
-    fn parser() -> Self::Parser {
-        map(
-            all2(
-                LogKind::parser(),
-                strip_whitespace(preceded(tag("requestid="), stdp::U32)),
-            ),
-            |(kind, request_id)| LogLine { kind, request_id },
-        )
-    }
-}
-
-/// Парсер строки логов
-pub struct LogLineParser {
-    parser: std::sync::OnceLock<<LogLine as Parsable>::Parser>,
-}
-impl LogLineParser {
-    pub fn parse(&self, input: String) -> Result<(String, LogLine), ()> {
-        self.parser
-            .get_or_init(|| <LogLine as Parsable>::parser())
-            .parse(input)
-    }
-}
-// подсказка: singleton, без которого можно обойтись
-// парсеры не страшно вытащить в pub
-/// Единожды собранный парсер логов
-pub static LOG_LINE_PARSER: LogLineParser = LogLineParser {
-    parser: std::sync::OnceLock::new(),
-};

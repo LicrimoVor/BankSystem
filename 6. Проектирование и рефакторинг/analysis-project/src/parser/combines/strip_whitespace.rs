@@ -7,10 +7,10 @@ pub struct StripWhitespace<T> {
 }
 impl<T: Parser> Parser for StripWhitespace<T> {
     type Dest = T::Dest;
-    fn parse(&self, input: String) -> Result<(String, Self::Dest), ()> {
+    fn parse<'a>(&self, input: &'a str) -> Result<(&'a str, Self::Dest), ()> {
         self.parser
-            .parse(input.trim_start().to_string())
-            .map(|(remaining, parsed)| (remaining.trim_start().to_string(), parsed))
+            .parse(input.trim_start())
+            .map(|(remaining, parsed)| (remaining.trim_start(), parsed))
     }
 }
 /// Конструктор [StripWhitespace]

@@ -8,7 +8,7 @@ pub struct Take<T> {
 }
 impl<T: Parser> Parser for Take<T> {
     type Dest = Vec<T::Dest>;
-    fn parse(&self, input: String) -> Result<(String, Self::Dest), ()> {
+    fn parse<'a>(&self, input: &'a str) -> Result<(&'a str, Self::Dest), ()> {
         let mut remaining = input;
         let mut result = Vec::new();
         for _ in 0..self.count {

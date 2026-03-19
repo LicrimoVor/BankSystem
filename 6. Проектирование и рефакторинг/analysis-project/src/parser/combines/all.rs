@@ -12,7 +12,7 @@ where
     A1: Parser,
 {
     type Dest = (A0::Dest, A1::Dest);
-    fn parse(&self, input: String) -> Result<(String, Self::Dest), ()> {
+    fn parse<'a>(&self, input: &'a str) -> Result<(&'a str, Self::Dest), ()> {
         let (remaining, a0) = self.parser.0.parse(input)?;
         self.parser
             .1
@@ -32,7 +32,7 @@ where
     A2: Parser,
 {
     type Dest = (A0::Dest, A1::Dest, A2::Dest);
-    fn parse(&self, input: String) -> Result<(String, Self::Dest), ()> {
+    fn parse<'a>(&self, input: &'a str) -> Result<(&'a str, Self::Dest), ()> {
         let (remaining, a0) = self.parser.0.parse(input)?;
         let (remaining, a1) = self.parser.1.parse(remaining)?;
         self.parser
@@ -56,7 +56,7 @@ where
     A3: Parser,
 {
     type Dest = (A0::Dest, A1::Dest, A2::Dest, A3::Dest);
-    fn parse(&self, input: String) -> Result<(String, Self::Dest), ()> {
+    fn parse<'a>(&self, input: &'a str) -> Result<(&'a str, Self::Dest), ()> {
         let (remaining, a0) = self.parser.0.parse(input)?;
         let (remaining, a1) = self.parser.1.parse(remaining)?;
         let (remaining, a2) = self.parser.2.parse(remaining)?;

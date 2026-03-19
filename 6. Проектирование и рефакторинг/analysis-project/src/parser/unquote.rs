@@ -5,7 +5,7 @@ use super::{Parser, utils::do_unquote};
 pub struct Unquote;
 impl Parser for Unquote {
     type Dest = String;
-    fn parse(&self, input: String) -> Result<(String, Self::Dest), ()> {
+    fn parse<'a>(&self, input: &'a str) -> Result<(&'a str, Self::Dest), ()> {
         do_unquote(input)
     }
 }

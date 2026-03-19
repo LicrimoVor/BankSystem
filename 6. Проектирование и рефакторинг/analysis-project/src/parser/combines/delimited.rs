@@ -20,7 +20,7 @@ where
     Suffix: Parser,
 {
     type Dest = T::Dest;
-    fn parse(&self, input: String) -> Result<(String, Self::Dest), ()> {
+    fn parse<'a>(&self, input: &'a str) -> Result<(&'a str, Self::Dest), ()> {
         let (remaining, _) = self.prefix_to_ignore.parse(input)?;
         let (remaining, result) = self.dest_parser.parse(remaining)?;
         self.suffix_to_ignore

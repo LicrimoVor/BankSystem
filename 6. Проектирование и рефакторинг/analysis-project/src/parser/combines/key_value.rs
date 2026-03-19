@@ -12,7 +12,7 @@ use super::{
 /// Для простоты реализации, запятая всегда нужна в конце пары ключ-значение,
 /// простое '"ключ":значение' читаться не будет
 #[derive(Debug, Clone)]
-struct KeyValue<T> {
+pub struct KeyValue<T> {
     parser: Delimited<
         All<(StripWhitespace<QuotedTag>, StripWhitespace<Tag>)>,
         StripWhitespace<T>,
@@ -24,12 +24,12 @@ where
     T: Parser,
 {
     type Dest = T::Dest;
-    fn parse(&self, input: String) -> Result<(String, Self::Dest), ()> {
+    fn parse<'a>(&self, input: &'a str) -> Result<(&'a str, Self::Dest), ()> {
         self.parser.parse(input)
     }
 }
 /// Конструктор [KeyValue]
-fn key_value<T: Parser>(key: &'static str, value_parser: T) -> KeyValue<T> {
+pub fn key_value<T: Parser>(key: &'static str, value_parser: T) -> KeyValue<T> {
     KeyValue {
         parser: delimited(
             all2(

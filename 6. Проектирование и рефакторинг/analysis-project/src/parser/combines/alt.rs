@@ -13,8 +13,8 @@ where
     A1: Parser<Dest = Dest>,
 {
     type Dest = Dest;
-    fn parse(&self, input: String) -> Result<(String, Self::Dest), ()> {
-        if let Ok(ok) = self.parser.0.parse(input.clone()) {
+    fn parse<'a>(&self, input: &'a str) -> Result<(&'a str, Self::Dest), ()> {
+        if let Ok(ok) = self.parser.0.parse(input) {
             return Ok(ok);
         }
         self.parser.1.parse(input)
@@ -35,15 +35,15 @@ where
     A2: Parser<Dest = Dest>,
 {
     type Dest = Dest;
-    fn parse(&self, input: String) -> Result<(String, Self::Dest), ()> {
+    fn parse<'a>(&self, input: &'a str) -> Result<(&'a str, Self::Dest), ()> {
         // match вместо тут не подойдёт - нужно лениво
-        if let Ok(ok) = self.parser.0.parse(input.clone()) {
+        if let Ok(ok) = self.parser.0.parse(input) {
             return Ok(ok);
         }
-        if let Ok(ok) = self.parser.1.parse(input.clone()) {
+        if let Ok(ok) = self.parser.1.parse(input) {
             return Ok(ok);
         }
-        self.parser.2.parse(input.clone())
+        self.parser.2.parse(input)
     }
 }
 /// Конструктор [Alt] для трёх парсеров
@@ -65,17 +65,17 @@ where
     A3: Parser<Dest = Dest>,
 {
     type Dest = Dest;
-    fn parse(&self, input: String) -> Result<(String, Self::Dest), ()> {
-        if let Ok(ok) = self.parser.0.parse(input.clone()) {
+    fn parse<'a>(&self, input: &'a str) -> Result<(&'a str, Self::Dest), ()> {
+        if let Ok(ok) = self.parser.0.parse(input) {
             return Ok(ok);
         }
-        if let Ok(ok) = self.parser.1.parse(input.clone()) {
+        if let Ok(ok) = self.parser.1.parse(input) {
             return Ok(ok);
         }
-        if let Ok(ok) = self.parser.2.parse(input.clone()) {
+        if let Ok(ok) = self.parser.2.parse(input) {
             return Ok(ok);
         }
-        self.parser.3.parse(input.clone())
+        self.parser.3.parse(input)
     }
 }
 /// Конструктор [Alt] для четырёх парсеров
@@ -108,29 +108,29 @@ where
     A7: Parser<Dest = Dest>,
 {
     type Dest = Dest;
-    fn parse(&self, input: String) -> Result<(String, Self::Dest), ()> {
-        if let Ok(ok) = self.parser.0.parse(input.clone()) {
+    fn parse<'a>(&self, input: &'a str) -> Result<(&'a str, Self::Dest), ()> {
+        if let Ok(ok) = self.parser.0.parse(input) {
             return Ok(ok);
         }
-        if let Ok(ok) = self.parser.1.parse(input.clone()) {
+        if let Ok(ok) = self.parser.1.parse(input) {
             return Ok(ok);
         }
-        if let Ok(ok) = self.parser.2.parse(input.clone()) {
+        if let Ok(ok) = self.parser.2.parse(input) {
             return Ok(ok);
         }
-        if let Ok(ok) = self.parser.3.parse(input.clone()) {
+        if let Ok(ok) = self.parser.3.parse(input) {
             return Ok(ok);
         }
-        if let Ok(ok) = self.parser.4.parse(input.clone()) {
+        if let Ok(ok) = self.parser.4.parse(input) {
             return Ok(ok);
         }
-        if let Ok(ok) = self.parser.5.parse(input.clone()) {
+        if let Ok(ok) = self.parser.5.parse(input) {
             return Ok(ok);
         }
-        if let Ok(ok) = self.parser.6.parse(input.clone()) {
+        if let Ok(ok) = self.parser.6.parse(input) {
             return Ok(ok);
         }
-        self.parser.7.parse(input.clone())
+        self.parser.7.parse(input)
     }
 }
 /// Конструктор [Alt] для восьми парсеров

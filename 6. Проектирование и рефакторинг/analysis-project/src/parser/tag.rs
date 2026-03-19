@@ -8,8 +8,8 @@ pub struct Tag {
 }
 impl Parser for Tag {
     type Dest = ();
-    fn parse(&self, input: String) -> Result<(String, Self::Dest), ()> {
-        Ok((input.strip_prefix(self.tag).ok_or(())?.to_string(), ()))
+    fn parse<'a>(&self, input: &'a str) -> Result<(&'a str, Self::Dest), ()> {
+        Ok((input.strip_prefix(self.tag).ok_or(())?, ()))
     }
 }
 /// Конструктор [Tag]
@@ -22,7 +22,7 @@ pub fn tag(tag: &'static str) -> Tag {
 pub struct QuotedTag(Tag);
 impl Parser for QuotedTag {
     type Dest = ();
-    fn parse(&self, input: String) -> Result<(String, Self::Dest), ()> {
+    fn parse<'a>(&self, input: &'a str) -> Result<(&'a str, Self::Dest), ()> {
         let (remaining, candidate) = do_unquote_non_escaped(input)?;
         if !self.0.parse(candidate)?.0.is_empty() {
             return Err(());

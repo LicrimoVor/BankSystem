@@ -13,7 +13,7 @@ where
     T: Parser,
 {
     type Dest = T::Dest;
-    fn parse(&self, input: String) -> Result<(String, Self::Dest), ()> {
+    fn parse<'a>(&self, input: &'a str) -> Result<(&'a str, Self::Dest), ()> {
         let (remaining, _) = self.prefix_to_ignore.parse(input)?;
         self.dest_parser.parse(remaining)
     }

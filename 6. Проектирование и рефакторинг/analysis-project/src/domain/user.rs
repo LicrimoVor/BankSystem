@@ -1,3 +1,6 @@
+use super::backet::Backet;
+use crate::parser::prelude::*;
+
 /// Фиатные деньги конкретного пользователя
 #[derive(Debug, Clone, PartialEq)]
 pub struct UserCash {
