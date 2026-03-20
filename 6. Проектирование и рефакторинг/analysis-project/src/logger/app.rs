@@ -7,7 +7,7 @@ use crate::parser::prelude::*;
 pub enum AppLogKind {
     Error(AppLogErrorKind),
     Trace(AppLogTraceKind),
-    Journal(AppLogJournalKind),
+    Journal(Box<AppLogJournalKind>),
 }
 /// Error [приложения](AppLogKind)
 #[derive(Debug, Clone, PartialEq)]
@@ -19,9 +19,9 @@ pub enum AppLogErrorKind {
 /// Trace [приложения](AppLogKind)
 #[derive(Debug, Clone, PartialEq)]
 pub enum AppLogTraceKind {
-    Connect(AuthData),
+    Connect(Box<AuthData>),
     SendRequest(String),
-    Check(Announcements),
+    Check(Box<Announcements>),
     GetResponse(String),
 }
 /// Журнал [приложения](AppLogKind), самые высокоуровневые события
@@ -116,7 +116,7 @@ impl Parsable for AppLogTraceKind {
                         strip_whitespace(tag("Connect")),
                         strip_whitespace(AuthData::parser()),
                     ),
-                    |authdata| AppLogTraceKind::Connect(authdata),
+                    |authdata| AppLogTraceKind::Connect(authdata.into()),
                 ),
                 map(
                     preceded(
@@ -130,7 +130,7 @@ impl Parsable for AppLogTraceKind {
                         strip_whitespace(tag("Check")),
                         strip_whitespace(Announcements::parser()),
                     ),
-                    |announcements| AppLogTraceKind::Check(announcements),
+                    |announcements| AppLogTraceKind::Check(announcements.into()),
                 ),
                 map(
                     preceded(
@@ -293,7 +293,7 @@ impl Parsable for AppLogKind {
                 map(AppLogErrorKind::parser(), |error| AppLogKind::Error(error)),
                 map(AppLogTraceKind::parser(), |trace| AppLogKind::Trace(trace)),
                 map(AppLogJournalKind::parser(), |journal| {
-                    AppLogKind::Journal(journal)
+                    AppLogKind::Journal(journal.into())
                 }),
             ),
         ))

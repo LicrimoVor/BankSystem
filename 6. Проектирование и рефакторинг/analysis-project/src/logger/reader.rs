@@ -28,13 +28,6 @@ struct LogIterator<T: MyReader> {
 impl<T: MyReader> LogIterator<T> {
     fn new(r: T) -> Self {
         use std::io::BufRead;
-        // подсказка: unsafe избыточен, да и весь rc - тоже
-        // примечание автора прототипа:
-        // > Мотивация: хочу позаимствовать RefCell,
-        // > но боюсь, что Rc протухнет - поэтому буду хранить и Rc и RefMut.
-        // > Я знаю, что деструкторы полей структуры вызываются в
-        // > порядке объявления в структуре - то есть сначала будет удалён
-        // > мой RefMutWrapper, а уже потом и весь исходный reader_rc
         Self {
             lines: std::io::BufReader::with_capacity(4096, r)
                 .lines()
@@ -57,44 +50,38 @@ impl<T: MyReader> Iterator for LogIterator<T> {
     }
 }
 
-// подсказка: RefCell вообще не нужен
 /// Принимает поток байт, отдаёт отфильтрованные и распарсенные логи
 pub fn read_log<T: MyReader>(input: T, mode: ReadMode, request_ids: Vec<u32>) -> Vec<LogLine> {
     let logs = LogIterator::new(input);
-    let mut collected = Vec::new();
-    // подсказка: можно обойтись итераторами
-    for log in logs {
-        if request_ids.is_empty() || {
-            let mut request_id_found = false;
-            for request_id in &request_ids {
-                if *request_id == log.request_id {
-                    request_id_found = true;
-                    break;
-                }
+    logs.into_iter()
+        .filter(|log| {
+            request_ids.is_empty() || {
+                request_ids
+                    .iter()
+                    .find(|request_id| log.request_id == **request_id)
+                    .is_some()
+            } && match mode {
+                ReadMode::All => true,
+                ReadMode::Errors => matches!(
+                    &log.kind,
+                    LogKind::System(SystemLogKind::Error(_)) | LogKind::App(AppLogKind::Error(_))
+                ),
+                ReadMode::Exchanges => matches!(
+                    &log.kind,
+                    LogKind::App(AppLogKind::Journal(inner))
+                        if matches!(
+                            inner.as_ref(),
+                            AppLogJournalKind::BuyAsset(_)
+                                | AppLogJournalKind::SellAsset(_)
+                                | AppLogJournalKind::CreateUser { .. }
+                                | AppLogJournalKind::RegisterAsset { .. }
+                                | AppLogJournalKind::DepositCash(_)
+                                | AppLogJournalKind::WithdrawCash(_)
+                        )
+                ),
             }
-            request_id_found
-        } && match mode {
-            ReadMode::All => true,
-            ReadMode::Errors => matches!(
-                &log.kind,
-                LogKind::System(SystemLogKind::Error(_)) | LogKind::App(AppLogKind::Error(_))
-            ),
-            ReadMode::Exchanges => matches!(
-                &log.kind,
-                LogKind::App(AppLogKind::Journal(
-                    AppLogJournalKind::BuyAsset(_)
-                        | AppLogJournalKind::SellAsset(_)
-                        | AppLogJournalKind::CreateUser { .. }
-                        | AppLogJournalKind::RegisterAsset { .. }
-                        | AppLogJournalKind::DepositCash(_)
-                        | AppLogJournalKind::WithdrawCash(_)
-                ))
-            ),
-        } {
-            collected.push(log);
-        }
-    }
-    collected
+        })
+        .collect()
 }
 
 #[cfg(test)]
