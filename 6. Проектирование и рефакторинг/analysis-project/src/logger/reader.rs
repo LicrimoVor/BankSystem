@@ -1,6 +1,8 @@
+use crate::LogLineParser;
+
 use super::utils::MyReader;
 use super::{
-    LOG_LINE_PARSER, LogKind, LogLine,
+    LogKind, LogLine,
     app::{AppLogJournalKind, AppLogKind},
     system::SystemLogKind,
 };
@@ -50,7 +52,7 @@ impl<T: MyReader> Iterator for LogIterator<T> {
     type Item = LogLine;
     fn next(&mut self) -> Option<Self::Item> {
         let line = self.lines.next()?.ok()?;
-        let (remaining, result) = LOG_LINE_PARSER.parse(line.trim()).ok()?;
+        let (remaining, result) = LogLineParser::new().parse(line.trim()).ok()?;
         remaining.trim().is_empty().then_some(result)
     }
 }
