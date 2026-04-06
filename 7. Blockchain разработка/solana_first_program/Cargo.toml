@@ -1,0 +1,6 @@
+[workspace]
+resolver = "3"
+members = ["hello_client", "hello_program"]
+
+[workspace.dependencies]
+solana-program = "3.0"

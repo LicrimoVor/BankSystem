@@ -1,0 +1,14 @@
+[package]
+name = "hello_client"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1"
+solana-client = "3.0.0"
+solana-commitment-config = "3.0.0"
+solana-sdk = "3.0.0"
+# solana-transaction-status — держите версию совместимой с solana-sdk/solana-client
+solana-transaction-status = "3.0.0"
+# нужен для RpcTransactionConfig в примере ниже
+solana-rpc-client-api = "3.0.0"
