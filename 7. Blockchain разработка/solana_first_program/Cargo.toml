@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["hello_client", "hello_program"]
+members = ["counter_client", "counter_program", "hello_client", "hello_program"]
 
 [workspace.dependencies]
 solana-program = "3.0"
