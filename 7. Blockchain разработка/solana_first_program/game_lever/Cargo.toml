@@ -1,0 +1,20 @@
+[package]
+name = "game_lever"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[dependencies]
+solana-program = { workspace = true }
+solana-system-interface = { version = "3.1.0", features = ["bincode"] }
+thiserror = "2.0.0"
+
+[dev-dependencies]
+solana-program-test = "3.0.0"
+solana-sdk = "3.0.0"
+borsh = "1.5.0"
+borsh-derive = "1.5.0"
+game_portal = { path = "../game_portal" }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
