@@ -5,21 +5,9 @@ use crate::error::OracleError;
 pub use state::OracleState;
 
 pub const PRICE_DECIMALS: u8 = 6;
-declare_id!("4cuvLFFqhaKnTHfeq2FtTUvgudRSe7wq982fA9PBUqBU");
+declare_id!("5tNEMPPJ9pUB3KMd91xmyNYJLGPQbGGXv6jd4AtWtAuJ");
 
 fn apply_price_update(oracle: &mut OracleState, new_price: u64, current_slot: u64) -> Result<()> {
-    // require!(
-    //     oracle.last_updated_slot < current_slot,
-    //     OracleError::InvalidSlot
-    // );
-
-    // let min = (oracle.price as u128).mul(8).div(10);
-    // let max = (oracle.price as u128).mul(12).div(10);
-
-    // require!(
-    //     new_price as u128 >= min && new_price as u128 <= max,
-    //     OracleError::InvalidPrice
-    // );
     oracle.last_updated_slot = current_slot;
     oracle.price = new_price;
     Ok(())

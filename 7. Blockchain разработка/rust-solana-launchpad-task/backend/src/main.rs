@@ -52,6 +52,7 @@ async fn run_price_updater(
 ) -> Result<()> {
     let client = RpcClient::new(cfg.rpc_http.clone());
     let mut ticker = interval(cfg.price_poll_interval);
+    info!("Starting price updater");
 
     // Run one update immediately on startup
     try_update_price(&client, &cfg, &price_source, admin.clone(), "initial").await;
@@ -93,6 +94,7 @@ async fn submit_price(
     new_price: u64,
     admin: Arc<Keypair>,
 ) -> Result<Signature> {
+    info!(new_price, "submitting price update");
     let ix_data = instruction::UpdatePrice { new_price }.data();
     let accounts = accounts::UpdatePrice {
         oracle: cfg.oracle_state,
@@ -129,6 +131,7 @@ async fn run_event_listener(cfg: Config) -> Result<()> {
     let client = PubsubClient::new(&cfg.rpc_ws)
         .await
         .context("connect pubsub ws")?;
+    info!("Starting event listener");
 
     let (mut stream, _unsub) = client
         .logs_subscribe(
