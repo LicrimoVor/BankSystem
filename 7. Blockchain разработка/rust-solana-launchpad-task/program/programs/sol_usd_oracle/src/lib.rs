@@ -1,18 +1,28 @@
 use anchor_lang::prelude::*;
-
-pub const PRICE_DECIMALS: u8 = 6;
-
+pub mod error;
 pub mod state;
+use crate::error::OracleError;
 pub use state::OracleState;
 
+pub const PRICE_DECIMALS: u8 = 6;
 declare_id!("4cuvLFFqhaKnTHfeq2FtTUvgudRSe7wq982fA9PBUqBU");
 
 fn apply_price_update(oracle: &mut OracleState, new_price: u64, current_slot: u64) -> Result<()> {
-    // TODO(student): finish the happy-path state update.
-    // Hint: once validation passes, the oracle should remember both the latest
-    // price and the slot at which it was refreshed.
-    let _ = (oracle, new_price, current_slot);
-    todo!("student task: persist the new price and slot");
+    // require!(
+    //     oracle.last_updated_slot < current_slot,
+    //     OracleError::InvalidSlot
+    // );
+
+    // let min = (oracle.price as u128).mul(8).div(10);
+    // let max = (oracle.price as u128).mul(12).div(10);
+
+    // require!(
+    //     new_price as u128 >= min && new_price as u128 <= max,
+    //     OracleError::InvalidPrice
+    // );
+    oracle.last_updated_slot = current_slot;
+    oracle.price = new_price;
+    Ok(())
 }
 
 #[program]
@@ -33,7 +43,11 @@ pub mod sol_usd_oracle {
         require!(new_price > 0, OracleError::InvalidPrice);
 
         let oracle = &mut ctx.accounts.oracle;
-        require_keys_eq!(ctx.accounts.admin.key(), oracle.admin, OracleError::Unauthorized);
+        require_keys_eq!(
+            ctx.accounts.admin.key(),
+            oracle.admin,
+            OracleError::Unauthorized
+        );
 
         let current_slot = Clock::get()?.slot;
         apply_price_update(oracle, new_price, current_slot)
@@ -60,12 +74,4 @@ pub struct UpdatePrice<'info> {
     #[account(mut, seeds = [OracleState::SEED], bump = oracle.bump, has_one = admin)]
     pub oracle: Account<'info, OracleState>,
     pub admin: Signer<'info>,
-}
-
-#[error_code]
-pub enum OracleError {
-    #[msg("Only oracle admin may call this instruction")]
-    Unauthorized,
-    #[msg("Price must be greater than zero")]
-    InvalidPrice,
 }

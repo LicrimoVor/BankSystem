@@ -1,15 +1,17 @@
+pub mod error;
+use crate::error::MinterError;
 use anchor_lang::{prelude::*, system_program};
 use anchor_spl::{
-    associated_token::AssociatedToken,
+    associated_token::{
+        spl_associated_token_account::solana_program::native_token::LAMPORTS_PER_SOL,
+        AssociatedToken,
+    },
     token::{self, Mint, MintTo, Token, TokenAccount},
 };
 use mpl_token_metadata::{
-    instructions::CreateMetadataAccountV3CpiBuilder,
-    types::DataV2,
-    ID as MPL_TOKEN_METADATA_ID,
+    instructions::CreateMetadataAccountV3CpiBuilder, types::DataV2, ID as MPL_TOKEN_METADATA_ID,
 };
 use sol_usd_oracle::{state::OracleState, PRICE_DECIMALS};
-
 pub const USD_DECIMALS: u8 = 6;
 pub const LAMPORTS_PER_SOL_U64: u64 = 1_000_000_000;
 
@@ -70,7 +72,8 @@ pub mod token_minter {
             MinterError::OracleDecimalsMismatch
         );
 
-        let fee_lamports = compute_fee_lamports(ctx.accounts.config.mint_fee_usd, oracle_state.price)?;
+        let fee_lamports =
+            compute_fee_lamports(ctx.accounts.config.mint_fee_usd, oracle_state.price)?;
 
         // Transfer SOL fee from user to treasury
         system_program::transfer(
@@ -166,12 +169,13 @@ pub mod token_minter {
 fn compute_fee_lamports(mint_fee_usd: u64, price: u64) -> Result<u64> {
     require!(price > 0, MinterError::OraclePriceZero);
 
-    // TODO(student): convert the USD-denominated mint fee into lamports.
-    // Both `mint_fee_usd` and `price` use 6 decimal places, so the formula is:
-    // fee_lamports = mint_fee_usd * LAMPORTS_PER_SOL / price
-    // Keep the integer math and overflow protection from the production version.
-    let _ = (mint_fee_usd, price);
-    todo!("student task: implement fee conversion");
+    let fee_lamports = (mint_fee_usd as u128)
+        .checked_mul(LAMPORTS_PER_SOL as u128)
+        .and_then(|v| v.checked_div(price as u128))
+        .ok_or(MinterError::MathOverflow)
+        .and_then(|v| u64::try_from(v).map_err(|_| MinterError::MathOverflow))?;
+
+    Ok(fee_lamports)
 }
 
 #[derive(Accounts)]
@@ -277,32 +281,4 @@ pub struct TokenCreated {
     pub fee_lamports: u64,
     pub sol_usd_price: u64,
     pub slot: u64,
-}
-
-#[error_code]
-pub enum MinterError {
-    #[msg("Mint fee in USD must be greater than zero")]
-    InvalidFeeUsd,
-    #[msg("Unauthorized admin call")]
-    Unauthorized,
-    #[msg("Oracle price must be greater than zero")]
-    OraclePriceZero,
-    #[msg("Math overflow while computing fee")]
-    MathOverflow,
-    #[msg("Invalid supply value")]
-    InvalidSupply,
-    #[msg("Decimals out of allowed range")]
-    InvalidDecimals,
-    #[msg("Oracle account does not match config")]
-    InvalidOracleState,
-    #[msg("Oracle program does not match config")]
-    InvalidOracleProgram,
-    #[msg("Oracle decimals mismatch expected 6")]
-    OracleDecimalsMismatch,
-    #[msg("Invalid Metaplex Token Metadata program")]
-    InvalidMetadataProgram,
-    #[msg("Invalid metadata PDA")]
-    InvalidMetadataPda,
-    #[msg("Metaplex create metadata CPI failed")]
-    MetadataCpiFailed,
 }
